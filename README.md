@@ -3,11 +3,11 @@
 
 > [通讯帧为什么总是用0xAA、0x55做帧头？ - 知乎](https://zhuanlan.zhihu.com/p/2015847819781615701)
 >
-> [rm_serial_driver: RoboMaster 视觉系统与电控系统的串口通讯模块](https://github.com/chenjunnn/rm_serial_driver?tab=readme-ov-file)
+> [RoboMaster 视觉系统与电控系统的串口通讯模块](https://github.com/chenjunnn/rm_serial_driver?tab=readme-ov-file)
 >
 > [CVRM 2023 :东莞理工学院 RoboMaster 战队 2023 赛季视觉代码框架](https://github.com/pcpengchang/vision-code)
 >
-> [RoboMaster 裁判系统串口协议附录 V1.5（20230707）.pdf](https://rm-static.djicdn.com/tem/68659/RoboMaster 裁判系统串口协议附录 V1.5（20230707）.pdf)
+> [RoboMaster 裁判系统串口协议附录 V1.5](https://rm-static.djicdn.com/tem/68659/RoboMaster%20%E8%A3%81%E5%88%A4%E7%B3%BB%E7%BB%9F%E4%B8%B2%E5%8F%A3%E5%8D%8F%E8%AE%AE%E9%99%84%E5%BD%95%20V1.5%EF%BC%8820230707%EF%BC%89.pdf)
 >
 > [哈尔滨工业大学深圳 RoboMaster 2021赛季 视觉代码](https://github.com/cxnaive/HITSZ_RMVISION_YOLOV5)
 >
@@ -18,6 +18,7 @@
 # GM6020双轴云台使用手册
 
 ## 指示灯描述
+
 - 绿灯常亮：云台正常工作
 - 绿灯闪烁：云台正在初始化或校准中
 - 红灯常亮：电源接通但云台未启动
