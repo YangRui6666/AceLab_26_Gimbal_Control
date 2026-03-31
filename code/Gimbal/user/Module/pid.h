@@ -1,0 +1,267 @@
+//
+// Created by CORE on 2026/3/14.
+// Updated by CORE on 2026/3/15 - 添加双环PID控制系统
+//
+
+#ifndef VISION_F405_PID_H
+#define VISION_F405_PID_H
+
+#include <stdint.h>
+#include <stdbool.h>
+#include "../Config/pid_config.h"
+#include "../Config/imu_config.h"
+
+// ================== 基础PID控制器结构 ==================
+/**
+ * @brief 增量式PID控制器结构体
+ */
+typedef struct
+{
+    // PID参数
+    float kp;               // 比例系数
+    float ki;               // 积分系数
+    float kd;               // 微分系数
+
+    // 限幅参数
+    float integral_max;     // 积分限幅
+    float output_max;       // 输出限幅
+
+    // 内部状态变量
+    float error[3];         // 误差历史: [0]当前 [1]上次 [2]上上次
+    float integral;         // 积分累积
+    float derivative;       // 微分项(滤波后)
+    float output;           // 控制输出
+
+    // 配置参数
+    float deadzone;         // 死区
+    float dt;               // 控制周期
+    bool integral_separation; // 积分分离使能
+    float separation_threshold; // 积分分离阈值
+
+    // 调试信息
+    uint32_t update_count;  // 更新次数计数
+} pid_controller_t;
+
+// ================== 单轴云台控制结构 ==================
+/**
+ * @brief 单轴云台控制结构(位置环+速度环)
+ */
+typedef struct
+{
+    pid_controller_t position_loop; // 位置环PID
+    pid_controller_t velocity_loop; // 速度环PID
+
+    // 目标值
+    float target_position;          // 目标位置(度)
+    float target_velocity;          // 目标速度(rpm) - 通常由位置环输出
+
+    // 反馈值
+    float current_position;         // 当前位置(度)
+    float current_velocity;         // 当前速度(rpm)
+    float current_current;          // 当前电流(mA)
+    int8_t current_temp;            // 当前温度(°C)
+
+    // 安全限制
+    float position_min;             // 位置最小值(度)
+    float position_max;             // 位置最大值(度)
+    bool safety_enable;             // 安全保护使能
+
+    // 状态标志
+    bool motor_online;              // 电机在线状态
+    bool emergency_stop;            // 紧急停止标志
+    uint32_t last_update_time;      // 最后更新时间(tick)
+
+    // 最终输出
+    int16_t output_current;         // 输出电流指令(mA)
+} gimbal_axis_control_t;
+
+// ================== 完整云台系统结构 ==================
+/**
+ * @brief 完整云台控制系统
+ */
+typedef struct
+{
+    gimbal_axis_control_t yaw;      // Yaw轴控制
+    gimbal_axis_control_t pitch;    // Pitch轴控制
+
+    // 系统状态
+    bool system_init;               // 系统初始化标志
+    bool global_emergency;          // 全局紧急停止
+    uint32_t control_tick_count;    // 控制tick计数器
+
+    // 频率控制
+    uint8_t velocity_loop_counter;  // 速度环计数器
+    uint8_t position_loop_counter;  // 位置环计数器
+
+    // 系统统计
+    uint32_t total_control_cycles;  // 总控制周期数
+    uint32_t safety_trigger_count;  // 安全保护触发次数
+} gimbal_control_system_t;
+
+// ================== 世界坐标系控制结构 ==================
+/**
+ * @brief 世界坐标系云台控制状态
+ */
+typedef struct {
+    // 目标值(世界坐标系)
+    float world_yaw_target;     // 世界坐标系目标Yaw角度 (度)
+    float world_pitch_target;   // 世界坐标系目标Pitch角度 (度)
+
+    // 当前值(世界坐标系)
+    float world_yaw_current;    // 世界坐标系当前Yaw角度 (度)
+    float world_pitch_current;  // 世界坐标系当前Pitch角度 (度)
+
+    // 陀螺仪角速度反馈
+    float gyro_yaw_rate;        // 陀螺仪Yaw角速度 (deg/s)
+    float gyro_pitch_rate;      // 陀螺仪Pitch角速度 (deg/s)
+
+    // 控制使能
+    bool world_control_enable;  // 世界坐标控制使能
+    bool gyro_feedback_enable;  // 陀螺仪反馈使能
+
+    // 安全限位
+    bool angle_limit_enable;    // 角度限位使能
+
+    // 状态信息
+    bool imu_data_valid;        // IMU数据有效性
+    uint32_t last_update_tick;  // 最后更新时间戳
+    uint32_t world_control_cycles; // 世界坐标控制周期计数
+} gimbal_world_state_t;
+
+// ================== 函数声明 ==================
+
+/**
+ * @brief 初始化PID控制器
+ * @param pid PID控制器指针
+ * @param kp 比例系数
+ * @param ki 积分系数
+ * @param kd 微分系数
+ * @param integral_max 积分限幅
+ * @param output_max 输出限幅
+ * @param dt 控制周期(s)
+ * @return 初始化是否成功
+ */
+bool pid_controller_init(pid_controller_t* pid,
+                        float kp, float ki, float kd,
+                        float integral_max, float output_max, float dt);
+
+/**
+ * @brief 增量式PID计算
+ * @param pid PID控制器指针
+ * @param target 目标值
+ * @param feedback 反馈值
+ * @return 控制输出
+ */
+float pid_calculate(pid_controller_t* pid, float target, float feedback);
+
+/**
+ * @brief 重置PID控制器状态
+ * @param pid PID控制器指针
+ */
+void pid_reset(pid_controller_t* pid);
+
+/**
+ * @brief 初始化云台控制系统
+ * @return 初始化是否成功
+ */
+bool gimbal_control_init(void);
+
+/**
+ * @brief 获取云台控制系统指针
+ * @return 云台控制系统指针
+ */
+gimbal_control_system_t* gimbal_get_system(void);
+
+/**
+ * @brief 设置云台目标位置
+ * @param yaw_target Yaw轴目标位置(度)
+ * @param pitch_target Pitch轴目标位置(度)
+ * @return 设置是否成功
+ */
+bool gimbal_set_position_target(float yaw_target, float pitch_target);
+
+/**
+ * @brief 位置环控制更新 (200Hz调用)
+ * @return 更新是否成功
+ */
+bool gimbal_position_loop_update(void);
+
+/**
+ * @brief 速度环控制更新 (500Hz调用)
+ * @return 更新是否成功
+ */
+bool gimbal_velocity_loop_update(void);
+
+/**
+ * @brief 安全检查
+ * @return 系统是否安全
+ */
+bool gimbal_safety_check(void);
+
+/**
+ * @brief 紧急停止
+ */
+void gimbal_emergency_stop(void);
+
+/**
+ * @brief 获取云台状态信息(用于调试)
+ * @param yaw_pos 返回Yaw位置
+ * @param pitch_pos 返回Pitch位置
+ * @param yaw_vel 返回Yaw速度
+ * @param pitch_vel 返回Pitch速度
+ */
+void gimbal_get_status(float* yaw_pos, float* pitch_pos,
+                      float* yaw_vel, float* pitch_vel);
+
+/**
+ * @brief 主控制接口 - 在ControlTask中调用
+ * @return 控制是否成功
+ */
+bool gimbal_control_task(void);
+
+// ================== 世界坐标系控制接口 ==================
+
+/**
+ * @brief 世界坐标系云台控制
+ * @param world_yaw 世界坐标系当前Yaw角度 (度)
+ * @param world_pitch 世界坐标系当前Pitch角度 (度)
+ * @param gyro_yaw_rate 陀螺仪Yaw角速度 (度/秒)
+ * @param gyro_pitch_rate 陀螺仪Pitch角速度 (度/秒)
+ * @return 控制是否成功
+ */
+bool gimbal_world_coordinate_control(float world_yaw, float world_pitch,
+                                   float gyro_yaw_rate, float gyro_pitch_rate);
+
+/**
+ * @brief 设置世界坐标系目标角度
+ * @param world_yaw_target 世界坐标系目标Yaw角度 (度)
+ * @param world_pitch_target 世界坐标系目标Pitch角度 (度)
+ * @return 设置是否成功
+ */
+bool gimbal_set_world_target(float world_yaw_target, float world_pitch_target);
+
+/**
+ * @brief 使能/禁用世界坐标系控制模式
+ * @param enable true=世界坐标控制, false=电机编码器控制
+ * @return 设置是否成功
+ */
+bool gimbal_set_world_control_enable(bool enable);
+
+/**
+ * @brief 获取世界坐标系控制状态
+ * @return 世界坐标控制状态指针
+ */
+gimbal_world_state_t* gimbal_get_world_state(void);
+
+/**
+ * @brief 检查角度是否在安全限位内
+ * @param yaw Yaw角度 (度)
+ * @param pitch Pitch角度 (度)
+ * @return true=在安全范围内, false=超出限位
+ */
+bool gimbal_check_angle_limits(float yaw, float pitch);
+
+// 兼容性接口(保持原有函数名)
+void moudle_ctrl_gimbal(void);
+
+#endif //VISION_F405_PID_H

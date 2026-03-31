@@ -1,0 +1,44 @@
+# STM32CubeMX scratch data
+mx.scratch
+
+# Build directories
+/build/
+/cmake-build-*/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+*.ninja
+.ninja_deps
+.ninja_log
+
+# Firmware and toolchain outputs
+*.elf
+*.hex
+*.bin
+*.map
+*.list
+*.o
+*.obj
+*.a
+*.d
+*.su
+
+# IDE metadata
+/.idea/
+/.vscode/
+/.settings/
+*.launch
+
+# OS junk files
+Thumbs.db
+.DS_Store
+
+#user add
+*example.c
+*example.h
+*guide.md
+

@@ -1,0 +1,8 @@
+//
+// Created by CORE on 2026/3/14.
+//
+
+#ifndef VISION_F405_BSP_WS2812_H
+#define VISION_F405_BSP_WS2812_H
+
+#endif //VISION_F405_BSP_WS2812_H
