@@ -8,7 +8,7 @@ typedef enum
     LED_PATTERN_OFF = 0,
     LED_PATTERN_WAIT_CONNECT,
     LED_PATTERN_USB_ACTIVE,
-    LED_PATTERN_LOCKED,
+    LED_PATTERN_DISABLED,
 } LedPattern_t;
 
 void LED_Init(void);

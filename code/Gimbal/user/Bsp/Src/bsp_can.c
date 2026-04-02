@@ -47,7 +47,7 @@ typedef struct
 
 
 /**
- * @brief       can初始化函数入口
+ * @brief       can初始化函数入口,用于
  *
  * @date        2026-03-13
  * @author      Rui.
@@ -101,6 +101,8 @@ bool bsp_can_init(void)
 
 /**
  * @brief       用于控制电机的底层发送函数
+ *              设计思路：调用该函数，直接给can总线去发送消息
+ *              传入你需要操作的dji电机的控制帧以及各个电机的电流值
  * 
  * @date        2026-03-13
  * @author      Rui.
@@ -117,8 +119,8 @@ void dji_motor_tx(uint16_t tx_std_id, const int16_t data_1, const int16_t data_2
     uint8_t tx_data[8];
     uint32_t tx_mailbox;
 
-        tx_header.StdId = tx_std_id;
-        tx_header.IDE = CAN_ID_STD;                             // 标准帧
+    tx_header.StdId = tx_std_id;
+    tx_header.IDE = CAN_ID_STD;                             // 标准帧
     tx_header.RTR = CAN_RTR_DATA;                           // 数据帧
     tx_header.DLC = 8;                                      // 数据长度 8 字节
 
@@ -139,6 +141,18 @@ void dji_motor_tx(uint16_t tx_std_id, const int16_t data_1, const int16_t data_2
 
 // CAN 批量控制电机函数 - 同时控制最多 8 个电机
 // motor_currents: 长度为 8 的数组，索引 0-7 对应电机 1-8，值为 0 表示不控制该电机
+/**
+ * @brief       CAN 批量控制电机函数
+ *              通过这个函数，我们可以直接控制GM6020的8组电机，同时控制这八组电机
+ *              组内会自动处理can帧的发送，并且没有被赋值的电机组会自动被设置为0
+ *              使用方法：
+ *              入参motor_currents：传入一个长度为8的数组的指针
+ *              效果：按照每一个电机的逻辑位置控制电流值
+ * @date        2026-04-01
+ * @author      Rui.
+ * 
+ * @param motor_currents 
+ */
 void bsp_ctrl_motor(const int16_t *motor_currents)
 {
     if (motor_currents != NULL)
@@ -220,6 +234,22 @@ void bsp_ctrl_motor(const int16_t *motor_currents)
  * @brief CAN接收中断回调函数、数据的直接写入
  * @param[in] hcan CAN句柄
  */
+
+ /**
+  * @brief      CAN接收中断回调函数
+  * @note       作用：读取接受can总线上传来的信息
+  *             此函数通过中断触发，无需手动调用
+  *             中断触发后，can消息会进入环形缓冲区
+  *             配置了过滤器，自动过滤
+  *             行为：
+  *             中断触发后，程序将电机消息添加到缓冲区中（覆盖模式）
+  * 
+  * 
+  * @date        2026-04-01
+  * @author      Rui.
+  * 
+  * @param hcan 
+  */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
     if (hcan == &hcan1)
@@ -248,6 +278,18 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
  * @brief 处理CAN接收数据
  *        暴露给外界函数的接口，需要周期性调用更新数据
  */
+
+ /**
+  * @brief       外部函数，用于处理CAN接收数据
+  * 
+  * @note       该函数是一个触发器
+  *             用于触发"parse_motor_feedback"函数
+  *             函数作用是去阅读，解析，处理can消息
+  * 
+  * @date        2026-04-01
+  * @author      Rui.
+  * 
+  */
 void bsp_process_can_rx_data(void)
 {
     can_rx_msg_t rx_msg;
@@ -263,6 +305,21 @@ void bsp_process_can_rx_data(void)
  * @brief 电机反馈解析函数 (包含解旋和滤波)
  * @param[in] msg CAN接收消息
  */
+
+ /**
+  * @brief       can消息解析函数
+  * 
+  * @note       该函数为内部函数
+  *             被对外函数"bsp_process_can_rx_data"调用后
+  *             函数会去读取处理can的环形缓冲区内部的数据
+  *             按照GM6020的解析协议去解读
+  *             解读完毕之后，写入"motor_states"中
+  * 
+  * @date        2026-04-01
+  * @author      Rui.
+  * 
+  * @param msg 
+  */
 static void parse_motor_feedback(const can_rx_msg_t *msg)
 {
     // 数据校验
@@ -363,11 +420,11 @@ static bool check_motor_data(const can_rx_msg_t *msg)
 }
 
 /**
- * @brief 获取电机状态
+ * @brief 获取电机结构体指针
  * @param[in] motor_id 电机ID (0=Yaw, 1=Pitch)
- * @retval 电机状态指针，失败返回NULL
+ * @retval 电机结构体指针，失败返回NULL
  */
-const gm6020_state_t* bsp_get_motor(uint8_t motor_id)
+const gm6020_state_t* bsp_can_get_motor_state(uint8_t motor_id)
 {
     if (motor_id >= 2)
     {
@@ -381,7 +438,7 @@ const gm6020_state_t* bsp_get_motor(uint8_t motor_id)
  * @param[in] motor_id 电机ID
  * @retval 累计角度值
  */
-int32_t get_motor_angle(uint8_t motor_id)
+int32_t get_can_get_motor_angle(uint8_t motor_id)
 {
     if (motor_id >= 2)
     {
@@ -396,7 +453,7 @@ int32_t get_motor_angle(uint8_t motor_id)
  * @retval true 超时, false 正常
  *
  */
-bool bsp_timeout_check(uint8_t motor_id)
+bool bsp_can_motor_is_timeout(uint8_t motor_id)
 {
     if (motor_id >= 2)
     {
@@ -406,10 +463,15 @@ bool bsp_timeout_check(uint8_t motor_id)
 }
 
 /**
- * @brief 重置电机解旋计数器
- * @param[in] motor_id 电机ID
+ * @brief       重置电机的解旋计数
+ *              
+ * 
+ * @date        2026-04-01
+ * @author      Rui.
+ * 
+ * @param motor_id 
  */
-void bsp_reset_motor(uint8_t motor_id)
+void bsp_can_reset_motor(uint8_t motor_id)
 {
     if (motor_id < 2)
     {

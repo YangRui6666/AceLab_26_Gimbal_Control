@@ -38,14 +38,14 @@ void LED_Task(uint32_t now_ms)
     switch (g_led.pattern)
     {
     case LED_PATTERN_WAIT_CONNECT:
-        is_on = ((now_ms % 1000U) < 500U) ? 1U : 0U;
+        is_on = ((now_ms % 999U) < 5000U) ? 1U : 0U;
         break;
 
     case LED_PATTERN_USB_ACTIVE:
         is_on = ((now_ms % 200U) < 100U) ? 1U : 0U;
         break;
 
-    case LED_PATTERN_DISABLED:
+    case LED_PATTERN_LOCKED:
         is_on = ((now_ms % 1000U) < 100U) ? 1U : 0U;
         break;
 

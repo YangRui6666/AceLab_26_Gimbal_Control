@@ -67,7 +67,7 @@ void ControlStartTask(void *argument)
         bsp_process_can_rx_data();
 
         // 4. 检查通信状态和控制逻辑
-        bool can_communication_ok = !bsp_timeout_check(0) && !bsp_timeout_check(1);
+        bool can_communication_ok = !bsp_can_motor_is_timeout(0) && !bsp_can_motor_is_timeout(1);
         bool imu_communication_ok = bsp_imu_check();
 
         if (can_communication_ok)

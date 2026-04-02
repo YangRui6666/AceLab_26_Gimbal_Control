@@ -1,52 +1,39 @@
 #ifndef F103_USB_SERIAL_USB_H
 #define F103_USB_SERIAL_USB_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 typedef enum
 {
-    GIMBAL_MODE_STABLE = 0,
-    GIMBAL_MODE_SEARCH = 1,
-    GIMBAL_MODE_AUTO_AIM = 2,
-    GIMBAL_MODE_LOCK_PROTECT = 3,
-    GIMBAL_MODE_DISABLE = 4,
-} GimbalMode_t;
+    MODE_DISABLED = 0,
+    MODE_STANDBY = 1,
+    MODE_SEARCH = 2,
+    MODE_AUTO_AIM = 3,
+    MODE_MANUAL = 4,
+} CloudMode_t;
 
 typedef enum
 {
     USB_CMD_GIMBAL_BOOT = 0x01,
     USB_CMD_GIMBAL_HANDSHAKE_ACK = 0x02,
     USB_CMD_GIMBAL_FEEDBACK = 0x03,
-    USB_CMD_GIMBAL_LOCKED = 0x08,
+    USB_CMD_GIMBAL_DISABLED = 0x08,
     USB_CMD_VISION_HANDSHAKE_REQ = 0x81,
-    USB_CMD_VISION_ENABLE_STREAM = 0x82,
     USB_CMD_VISION_SEARCH = 0x83,
     USB_CMD_VISION_AUTO_AIM = 0x84,
-    USB_CMD_VISION_HEARTBEAT = 0x85,
-    USB_CMD_VISION_LOCK = 0x87,
+    USB_CMD_VISION_DISABLE = 0x87,
     USB_CMD_VISION_UNLOCK = 0x88,
 } UsbCommand_t;
-
-typedef enum
-{
-    LOCK_REASON_MANUAL = 1,
-    LOCK_REASON_BOOT_TIMEOUT = 2,
-    LOCK_REASON_HEARTBEAT_TIMEOUT = 3,
-} UsbLockReason_t;
 
 typedef struct
 {
     int16_t yaw_target;
     int16_t pitch_target;
     uint32_t time_stamp;
-    uint8_t reserved[2];
+    uint8_t fire_cmd;
+    uint8_t anti_top;
 } UsbAimControl_t;
-
-typedef struct
-{
-    uint8_t mode;
-    uint32_t time_stamp;
-} UsbHeartbeat_t;
 
 void USB_AppInit(void);
 void USB_AppTask(uint32_t now_ms);

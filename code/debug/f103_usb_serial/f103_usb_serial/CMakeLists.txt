@@ -11,9 +11,6 @@ cmake_minimum_required(VERSION 3.22)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 
 # Define the build type
@@ -22,7 +19,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Set the project name
-set(CMAKE_PROJECT_NAME Gimbal)
+set(CMAKE_PROJECT_NAME f103_usb_serial)
 
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
@@ -31,32 +28,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 project(${CMAKE_PROJECT_NAME})
 message("Build type: " ${CMAKE_BUILD_TYPE})
 
-# Enable CMake support for ASM, C and C++ languages
-enable_language(C CXX ASM)
+# Enable CMake support for ASM and C languages
+enable_language(C ASM)
 
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME}
-        user/Bsp/Src/bsp_can.c
-        user/Bsp/Src/bsp_bmi088.c
-        user/Bsp/Src/bsp_usb.c
-        user/Module/pid.c
-        user/Module/imu_fusion.c
-        user/Config/motor_config.c
-        user/Config/motor_config.h
-        user/Config/can_id.h
-        user/Tools/ring_buffer.c
-        user/Devices/devices_gm6020.c
-        user/Tasks/ControlTask.c
-        user/Tasks/VisionTask.c
-        user/Module/pid.h
-        user/Module/imu_fusion.h
-        user/Library/Kalman.c
-        user/Debug/debug.c
-        user/Debug/debug.h
-        user/Bsp/Src/bsp_can.cpp
-        user/Devices/gm6020.cpp
-        user/Devices/motor_manage.cpp
-)
+        Core/Src/usb.c
+        Core/Src/usb.h
+        Core/Src/LED.c
+        Core/Src/LED.h)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
@@ -73,10 +53,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/user/Config
-    ${CMAKE_CURRENT_SOURCE_DIR}/user/Module
-    ${CMAKE_CURRENT_SOURCE_DIR}/user
-    ${CMAKE_CURRENT_SOURCE_DIR}/user/Bsp/Inc
+    # Add user defined include paths
 )
 
 # Add project symbols (macros)

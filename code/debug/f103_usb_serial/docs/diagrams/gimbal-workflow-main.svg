@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="320" viewBox="0 0 1120 320" role="img" aria-labelledby="title desc">
+  <title id="title">云台主工作流</title>
+  <desc id="desc">展示云台从开机自检到稳定模式、搜索模式、自瞄模式的主工作流，以及模式降级关系。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#355c7d"/>
+    </marker>
+    <style>
+      .title { font: 700 28px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #1f2937; }
+      .subtitle { font: 400 14px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #6b7280; }
+      .box-title { font: 700 20px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #0f172a; }
+      .box-text { font: 400 13px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #334155; }
+      .label { font: 600 14px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #355c7d; }
+      .note { font: 400 12px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #64748b; }
+      .card { stroke-width: 2; rx: 16; ry: 16; }
+      .arrow { stroke: #355c7d; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1120" height="320" fill="#f8fafc"/>
+  <text x="60" y="48" class="title">云台主工作流</text>
+  <text x="60" y="74" class="subtitle">先看正常运行路径，再看超时后的自动回退</text>
+
+  <rect x="60" y="120" width="210" height="110" class="card" fill="#fff7ed" stroke="#f59e0b"/>
+  <text x="165" y="155" text-anchor="middle" class="box-title">开机自检</text>
+  <text x="165" y="182" text-anchor="middle" class="box-text">硬件检查</text>
+  <text x="165" y="202" text-anchor="middle" class="box-text">电机测试 / IMU 检测</text>
+
+  <rect x="320" y="120" width="210" height="110" class="card" fill="#ecfeff" stroke="#06b6d4"/>
+  <text x="425" y="155" text-anchor="middle" class="box-title">稳定模式</text>
+  <text x="425" y="182" text-anchor="middle" class="box-text">开机默认状态</text>
+  <text x="425" y="202" text-anchor="middle" class="box-text">回零并保持对地稳定</text>
+
+  <rect x="580" y="120" width="210" height="110" class="card" fill="#ecfccb" stroke="#65a30d"/>
+  <text x="685" y="155" text-anchor="middle" class="box-title">搜索模式</text>
+  <text x="685" y="182" text-anchor="middle" class="box-text">连接成功后默认进入</text>
+  <text x="685" y="202" text-anchor="middle" class="box-text">按预设轨迹扫描目标</text>
+
+  <rect x="840" y="120" width="220" height="110" class="card" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="950" y="155" text-anchor="middle" class="box-title">自瞄模式</text>
+  <text x="950" y="182" text-anchor="middle" class="box-text">接收 0x84 后进入</text>
+  <text x="950" y="202" text-anchor="middle" class="box-text">按视觉结果进行目标跟踪</text>
+
+  <line x1="270" y1="175" x2="320" y2="175" class="arrow"/>
+  <text x="295" y="163" text-anchor="middle" class="label">自检完成</text>
+
+  <line x1="530" y1="175" x2="580" y2="175" class="arrow"/>
+  <text x="555" y="163" text-anchor="middle" class="label">连接成功</text>
+
+  <line x1="790" y1="175" x2="840" y2="175" class="arrow"/>
+  <text x="815" y="163" text-anchor="middle" class="label">接收 0x84</text>
+
+  <path d="M 950 230 C 950 280, 685 280, 685 230" class="arrow"/>
+  <text x="818" y="292" text-anchor="middle" class="label">200ms 无通信，降级回搜索模式</text>
+
+  <path d="M 685 110 C 685 80, 425 80, 425 120" class="arrow"/>
+  <text x="555" y="102" text-anchor="middle" class="label">500ms 未收到有效指令，回退到稳定模式</text>
+
+  <text x="60" y="282" class="note">说明：本图只展示正常运行与自动回退路径，保护模式见下一图。</text>
+</svg>

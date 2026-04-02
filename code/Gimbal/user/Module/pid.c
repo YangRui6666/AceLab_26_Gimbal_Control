@@ -285,7 +285,7 @@ static bool update_axis_feedback(gimbal_axis_control_t* axis, uint8_t motor_id)
     if (axis == NULL) return false;
 
     // 检查电机在线状态
-    axis->motor_online = !bsp_timeout_check(motor_id);
+    axis->motor_online = !bsp_can_motor_is_timeout(motor_id);
 
     if (!axis->motor_online)
     {
@@ -293,7 +293,7 @@ static bool update_axis_feedback(gimbal_axis_control_t* axis, uint8_t motor_id)
     }
 
     // 获取电机状态
-    const gm6020_state_t* motor_state = bsp_get_motor(motor_id);
+    const gm6020_state_t* motor_state = bsp_can_get_motor_state(motor_id);
     if (motor_state == NULL)
     {
         axis->motor_online = false;
@@ -301,7 +301,7 @@ static bool update_axis_feedback(gimbal_axis_control_t* axis, uint8_t motor_id)
     }
 
     // 更新反馈数据
-    axis->current_position = raw_to_degrees(get_motor_angle(motor_id));
+    axis->current_position = raw_to_degrees(get_can_get_motor_angle(motor_id));
     axis->current_velocity = raw_to_rpm(motor_state->speed);
     axis->current_current = motor_state->filtered_current;
     axis->current_temp = motor_state->temp;

@@ -48,9 +48,9 @@ void dji_motor_tx(uint16_t tx_std_id, const int16_t data_1, const int16_t data_2
 
 // CAN接收处理函数
 void bsp_process_can_rx_data(void);
-const gm6020_state_t* bsp_get_motor(uint8_t motor_id);
-int32_t get_motor_angle(uint8_t motor_id);
-bool bsp_timeout_check(uint8_t motor_id);
-void bsp_reset_motor(uint8_t motor_id);
+const gm6020_state_t* bsp_can_get_motor_state(uint8_t motor_id);
+int32_t get_can_get_motor_angle(uint8_t motor_id);
+bool bsp_can_motor_is_timeout(uint8_t motor_id);
+void bsp_can_reset_motor(uint8_t motor_id);
 
 #endif //VISION_F405_BSP_CAN_H

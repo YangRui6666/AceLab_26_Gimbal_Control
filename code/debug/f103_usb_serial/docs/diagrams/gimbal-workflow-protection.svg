@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="420" viewBox="0 0 1120 420" role="img" aria-labelledby="title desc">
+  <title id="title">云台保护模式与恢复路径</title>
+  <desc id="desc">展示云台从稳定模式、搜索模式、自瞄模式进入锁定保护模式或失能保护模式的条件，以及锁定后的恢复方式。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#374151"/>
+    </marker>
+    <style>
+      .title { font: 700 28px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #1f2937; }
+      .subtitle { font: 400 14px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #6b7280; }
+      .lane-title { font: 700 18px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #475569; }
+      .box-title { font: 700 20px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #0f172a; }
+      .box-text { font: 400 13px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #334155; }
+      .label { font: 600 14px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #374151; }
+      .warn { font: 700 14px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #b91c1c; }
+      .note { font: 400 12px "Microsoft YaHei", "Segoe UI", sans-serif; fill: #64748b; }
+      .card { stroke-width: 2; rx: 16; ry: 16; }
+      .arrow { stroke: #374151; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .dash { stroke-dasharray: 8 6; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1120" height="420" fill="#f8fafc"/>
+  <text x="60" y="48" class="title">保护模式与恢复路径</text>
+  <text x="60" y="74" class="subtitle">把“正常模式”和“异常模式”分开看，更容易判断触发条件和恢复动作</text>
+
+  <rect x="50" y="100" width="450" height="270" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" rx="18" ry="18"/>
+  <text x="80" y="130" class="lane-title">正常工作模式</text>
+
+  <rect x="90" y="155" width="140" height="72" class="card" fill="#ecfeff" stroke="#06b6d4"/>
+  <text x="160" y="185" text-anchor="middle" class="box-title">稳定模式</text>
+  <text x="160" y="207" text-anchor="middle" class="box-text">开机默认</text>
+
+  <rect x="90" y="248" width="140" height="72" class="card" fill="#ecfccb" stroke="#65a30d"/>
+  <text x="160" y="278" text-anchor="middle" class="box-title">搜索模式</text>
+  <text x="160" y="300" text-anchor="middle" class="box-text">巡航搜索目标</text>
+
+  <rect x="90" y="341" width="140" height="72" class="card" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="160" y="371" text-anchor="middle" class="box-title">自瞄模式</text>
+  <text x="160" y="393" text-anchor="middle" class="box-text">视觉跟踪目标</text>
+
+  <rect x="620" y="120" width="380" height="120" class="card" fill="#fff7ed" stroke="#ea580c"/>
+  <text x="810" y="158" text-anchor="middle" class="box-title">锁定保护模式</text>
+  <text x="810" y="186" text-anchor="middle" class="box-text">云台断电，停止正常控制</text>
+  <text x="810" y="208" text-anchor="middle" class="box-text">可通过 0x88 解锁并回到稳定模式</text>
+
+  <rect x="620" y="268" width="380" height="120" class="card" fill="#fef2f2" stroke="#dc2626"/>
+  <text x="810" y="306" text-anchor="middle" class="box-title">失能保护模式</text>
+  <text x="810" y="334" text-anchor="middle" class="box-text">电机立即失能</text>
+  <text x="810" y="356" text-anchor="middle" class="warn">无法自行恢复，请联系电控处理</text>
+
+  <line x1="230" y1="191" x2="620" y2="170" class="arrow"/>
+  <text x="432" y="164" text-anchor="middle" class="label">15s 未连接上位机</text>
+
+  <line x1="230" y1="284" x2="620" y2="190" class="arrow"/>
+  <text x="428" y="230" text-anchor="middle" class="label">心跳中断 &gt; 1000ms</text>
+
+  <line x1="230" y1="377" x2="620" y2="210" class="arrow"/>
+  <text x="430" y="324" text-anchor="middle" class="label">心跳中断 &gt; 1000ms</text>
+
+  <line x1="620" y1="240" x2="230" y2="191" class="arrow dash"/>
+  <text x="432" y="258" text-anchor="middle" class="label">接收 0x88，退出锁定后回到稳定模式</text>
+
+  <line x1="230" y1="191" x2="620" y2="306" class="arrow"/>
+  <text x="425" y="276" text-anchor="middle" class="label">IMU 异常 / 电机反馈丢失 / 角度越界</text>
+
+  <line x1="230" y1="284" x2="620" y2="326" class="arrow"/>
+  <text x="425" y="316" text-anchor="middle" class="label">IMU 异常 / 电机反馈丢失 / 角度越界</text>
+
+  <line x1="230" y1="377" x2="620" y2="346" class="arrow"/>
+  <text x="425" y="372" text-anchor="middle" class="label">IMU 异常 / 电机反馈丢失 / 角度越界</text>
+
+  <text x="60" y="398" class="note">说明：锁定保护模式可通过 0x88 恢复；失能保护模式不可自行恢复。</text>
+</svg>

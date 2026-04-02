@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USB 云台调试台 Demo</title>
+<style>
+:root{--panel:rgba(255,255,255,.9);--panel-strong:rgba(255,255,255,.97);--field:#fbfdff;--line:#d9e3ec;--line-strong:#c8d4df;--text:#223140;--muted:#708293;--blue:#3478c8;--blue-soft:#edf5ff;--green:#2f8b59;--green-soft:#ebf7ef;--amber:#976718;--amber-soft:#fff6e4;--red:#a13f3f;--red-soft:#fff0f0;--shadow:0 18px 38px rgba(88,107,132,.14);--mono:"Consolas","Cascadia Mono","Courier New",monospace;--body:"Segoe UI","Microsoft YaHei UI",sans-serif}
+*{box-sizing:border-box}body{margin:0;font-family:var(--body);color:var(--text);background:linear-gradient(180deg,#f6fafc,#eef3f7);transition:background .35s ease}body:before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(34,49,64,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(34,49,64,.03) 1px,transparent 1px);background-size:26px 26px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.35),transparent 94%)}body[data-mode="standby"]{background:radial-gradient(circle at top left,rgba(89,174,231,.08),transparent 24%),linear-gradient(180deg,#f8fbfd,#eef4f8)}body[data-mode="search"]{background:radial-gradient(circle at top left,rgba(62,189,124,.10),transparent 24%),linear-gradient(180deg,#fafdfb,#eef7f1)}body[data-mode="auto"]{background:radial-gradient(circle at top left,rgba(214,154,45,.10),transparent 24%),linear-gradient(180deg,#fffdfa,#fff6e8)}body[data-mode="disabled"]{background:radial-gradient(circle at top left,rgba(216,93,93,.08),transparent 24%),linear-gradient(180deg,#fffafa,#f8eeee)}
+.page{max-width:1520px;margin:0 auto;padding:18px}.card,.group{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);backdrop-filter:blur(10px)}.header{display:grid;grid-template-columns:1fr auto;gap:14px;padding:16px 18px;margin-bottom:14px;background:var(--panel-strong)}.title{margin:0;font-size:28px;font-weight:700;color:#203040}.subtitle{margin:6px 0 0;color:var(--muted);font-size:13px}.top-tools{display:flex;align-items:center;flex-wrap:wrap;gap:10px}.badge,.mode-badge,.small-pill,.toggle-pill{display:inline-flex;align-items:center;justify-content:center;padding:6px 12px;border-radius:11px;border:1px solid var(--line-strong);background:#fff;font-weight:700}.badge-dot{width:10px;height:10px;border-radius:50%;background:#2f8b59;box-shadow:0 0 0 6px rgba(47,139,89,.14);margin-right:8px}.btn{appearance:none;padding:9px 14px;border-radius:10px;border:1px solid var(--line-strong);background:#f8fbfe;color:var(--text);font-weight:600;cursor:pointer}.btn:hover{background:#eef5fb}.btn.primary{background:var(--blue-soft);color:var(--blue);border-color:#bfd4f3}.btn.green{background:var(--green-soft);color:var(--green);border-color:#c9e7d4}.btn.amber{background:var(--amber-soft);color:var(--amber);border-color:#ead8ab}.btn.red{background:var(--red-soft);color:var(--red);border-color:#efcaca}.layout{display:grid;grid-template-columns:380px 1fr;gap:14px}.left{display:grid;gap:12px}.right{display:grid;grid-template-rows:1fr .72fr;gap:12px}.group{padding:14px}.group-title{margin:0 0 12px;font-size:16px;font-weight:700;color:#203040}.grid2,.grid-status,.mini-stats,.proto{display:grid;gap:10px}.grid2{grid-template-columns:1fr 1fr}.grid-status{grid-template-columns:118px 1fr;align-items:center}.label{color:var(--muted);font-size:13px}.value{font-weight:700}.mode-badge{color:#fff;border:none;background:#2f8b59}.field,.plot,.attitude,.logbox,.mini-card,.proto pre{background:var(--field);border:1px solid #dfe7ef;border-radius:12px}.field,.mini-card{padding:12px 14px}.field .label,.mini-card .label{display:block;font-size:12px;margin-bottom:6px}.field .value,.mini-card .value{font-size:20px}.stack{display:grid;gap:10px}.command-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.switch-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.toggle-pill{justify-content:space-between;padding:10px 12px;font-size:13px}.toggle-pill.active{background:#edf5ff;color:#315eb9;border-color:#c7d8ee}.attitude-card,.plot-card,.log-card{padding:14px}.attitude{min-height:320px;display:grid;place-items:center;position:relative;overflow:hidden;background:radial-gradient(circle at center,rgba(89,174,231,.12),transparent 34%),linear-gradient(180deg,#fbfeff,#f4f8fb)}.attitude:before,.attitude:after{content:"";position:absolute;border:1px solid rgba(120,145,170,.18);border-radius:50%;inset:16% 22%}.attitude:after{inset:8% 13%;border-style:dashed;opacity:.55}.cube{width:220px;height:220px;border-radius:26%;background:linear-gradient(145deg,#88d6ff,#5b98e4);box-shadow:0 18px 36px rgba(78,124,176,.18),0 0 0 16px rgba(89,174,231,.06);transform:rotateX(58deg) rotateZ(-28deg);position:relative}.cube:before,.cube:after{content:"";position:absolute;inset:18%;border:2px solid rgba(255,255,255,.72);border-radius:16px}.cube:after{inset:auto 10% 20% 10%;height:16px;border:none;border-radius:999px;background:rgba(255,255,255,.18)}.attitude-note{position:absolute;left:16px;bottom:16px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.84);border:1px solid #dfe7ef;font-size:12px;color:#486173}.attitude-layout{display:grid;grid-template-columns:1fr 300px;gap:12px}.mini-stats{grid-template-columns:1fr}.mini-card .value{font-size:23px}.plot{min-height:250px;position:relative;overflow:hidden;background:linear-gradient(180deg,#fcfdff,#f4f8fb)}.plot:before,.plot:after{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(58,82,104,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(58,82,104,.05) 1px,transparent 1px);background-size:28px 28px}.plot svg{width:100%;height:100%;position:relative;z-index:1;display:block}.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}.legend span{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}.legend i{display:inline-block;width:16px;height:3px;border-radius:999px}.proto{grid-template-columns:1fr 1fr;margin-top:12px}.proto pre{margin:0;padding:12px;font:12px/1.55 var(--mono);white-space:pre-wrap;word-break:break-word;color:#385066}.log-card{margin-top:14px}.log-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.log-actions{display:flex;gap:10px;flex-wrap:wrap}.logbox{overflow:hidden}.log-lines{max-height:300px;overflow:auto;padding:12px 14px;background:var(--field);font:13px/1.55 var(--mono);white-space:pre-wrap;word-break:break-word}.line-tx{color:#3478c8}.line-rx{color:#2f8b59}.line-state{color:#33485b}.line-warn{color:#9b7420}.line-err{color:#b54949}.line-dim{color:#8798a7}
+@media (max-width:1220px){.layout,.attitude-layout,.header{grid-template-columns:1fr}.right{grid-template-rows:auto auto}}
+@media (max-width:760px){.page{padding:12px}.grid2,.command-grid,.quick-grid,.switch-row,.proto{grid-template-columns:1fr}.title{font-size:24px}}
+</style>
+</head>
+<body data-mode="search">
+<div class="page">
+<header class="card header">
+<div>
+<h1 class="title">USB 云台调试台</h1>
+<p class="subtitle">串口协议调试、姿态显示、实时曲线</p>
+</div>
+<div class="top-tools">
+<div class="badge"><i class="badge-dot"></i><span id="connectText">已连接</span></div>
+<div class="small-pill">端口：COM7</div>
+<div class="small-pill">波特率：115200</div>
+<div class="small-pill" id="uptimeTag">连接时长：00:00</div>
+<button class="btn">刷新</button>
+<button class="btn primary">断开</button>
+</div>
+</header>
+
+<section class="layout">
+<aside class="left">
+<div class="group">
+<h2 class="group-title">会话状态</h2>
+<div class="grid-status"><div class="label">当前模式</div><div><span class="mode-badge" id="modeBadge">搜索模式</span></div></div>
+<div class="grid-status"><div class="label">连接时长</div><div class="value" id="uptimeValue">00:00</div></div>
+<div class="grid-status"><div class="label">最近反馈</div><div class="value" id="feedbackAge">12 ms 前</div></div>
+<div class="grid-status"><div class="label">Yaw</div><div class="value" id="sessionYaw">14.230 deg</div></div>
+<div class="grid-status"><div class="label">Pitch</div><div class="value" id="sessionPitch">-3.540 deg</div></div>
+<div class="grid-status"><div class="label">Roll</div><div class="value" id="sessionRoll">0.120 deg</div></div>
+</div>
+
+<div class="group">
+<h2 class="group-title">控制区</h2>
+<div class="command-grid">
+<button class="btn" id="standbyBtn">自稳</button>
+<button class="btn green" id="searchBtn">搜索</button>
+<button class="btn primary" id="autoBtn">自瞄</button>
+<button class="btn red" id="disableBtn">失能</button>
+<button class="btn" id="stopKeepaliveBtn" style="grid-column:1 / -1">停止保活</button>
+</div>
+</div>
+
+<div class="group">
+<h2 class="group-title">自瞄参数</h2>
+<div class="grid2">
+<div class="field"><span class="label">Yaw (deg)</span><div class="value" id="autoYaw">12.500</div></div>
+<div class="field"><span class="label">Pitch (deg)</span><div class="value" id="autoPitch">-2.750</div></div>
+<div class="field"><span class="label">搜索周期</span><div class="value">25 ms</div></div>
+<div class="field"><span class="label">自瞄周期</span><div class="value">4 ms</div></div>
+</div>
+</div>
+
+<div class="group">
+<h2 class="group-title">调试台</h2>
+<div class="quick-grid">
+<button class="btn" id="handshakeBtn">握手</button>
+<button class="btn amber" id="unlockBtn">解锁</button>
+<button class="btn" id="reconnectBtn">立即重连</button>
+<button class="btn" id="clearLogBtn">清空日志</button>
+</div>
+<div class="switch-row">
+<button class="toggle-pill active" id="serialReconnectBtn">串口自动重连：开</button>
+<button class="toggle-pill active" id="gimbalReconnectBtn">云台自动重连：开</button>
+</div>
+</div>
+</aside>
+
+<div class="right">
+<div class="card attitude-card">
+<h2 class="group-title">3D 姿态</h2>
+<div class="attitude-layout">
+<div>
+<div class="attitude">
+<div class="cube"></div>
+<div class="attitude-note" id="attitudeNote">当前模式：搜索模式 / 反馈间隔 12 ms</div>
+</div>
+<div class="proto">
+<pre id="lastTx">TX 0x83 搜索保活
+AA 55 00 83 41 D1 5A A5</pre>
+<pre id="lastRx">RX 0x03 云台反馈
+yaw=14.230 pitch=-3.540 roll=0.120
+mode=SEARCH</pre>
+</div>
+</div>
+<div class="mini-stats">
+<div class="mini-card"><span class="label">Yaw</span><div class="value" id="yawStat">14.230°</div></div>
+<div class="mini-card"><span class="label">Pitch</span><div class="value" id="pitchStat">-3.540°</div></div>
+<div class="mini-card"><span class="label">Roll</span><div class="value" id="rollStat">0.120°</div></div>
+<div class="mini-card"><span class="label">保活状态</span><div class="value" id="keepaliveText">搜索保活</div></div>
+<div class="mini-card"><span class="label">串口自动重连</span><div class="value" id="serialReconnectText">开启</div></div>
+<div class="mini-card"><span class="label">云台自动重连</span><div class="value" id="gimbalReconnectText">开启</div></div>
+</div>
+</div>
+</div>
+
+<div class="card plot-card">
+<div class="log-toolbar" style="margin-bottom:10px">
+<h2 class="group-title" style="margin:0">实时曲线</h2>
+<button class="btn">清空曲线</button>
+</div>
+<div class="plot">
+<svg viewBox="0 0 600 250" preserveAspectRatio="none" aria-label="motion traces">
+<polyline fill="none" stroke="#59aee7" stroke-width="3" points="0,142 60,128 120,146 180,114 240,126 300,100 360,120 420,94 480,112 540,88 600,102"></polyline>
+<polyline fill="none" stroke="#d69a2d" stroke-width="3" points="0,168 60,176 120,160 180,170 240,158 300,166 360,152 420,160 480,150 540,156 600,148"></polyline>
+<polyline fill="none" stroke="#2f8b59" stroke-width="3" points="0,152 60,151 120,150 180,151 240,149 300,150 360,149 420,150 480,149 540,148 600,149"></polyline>
+</svg>
+</div>
+<div class="legend">
+<span><i style="background:#59aee7"></i>yaw</span>
+<span><i style="background:#d69a2d"></i>pitch</span>
+<span><i style="background:#2f8b59"></i>roll</span>
+</div>
+</div>
+</div>
+</section>
+
+<section class="card log-card">
+<div class="log-toolbar">
+<h2 class="group-title" style="margin:0">会话日志</h2>
+<div class="log-actions">
+<button class="btn">暂停</button>
+<button class="btn">清空</button>
+<button class="btn">导出</button>
+</div>
+</div>
+<div class="logbox">
+<div class="log-lines" id="logLines"><span class="line-state">[19:41:20.015] 已打开 COM7</span>
+<span class="line-state">[19:41:20.020] 串口自动重连已开启</span>
+<span class="line-state">[19:41:20.021] 云台自动重连已开启</span>
+<span class="line-tx">[19:41:20.022] 组合命令：解锁并进入搜索</span>
+<span class="line-tx">[19:41:20.023] TX 0x88 解锁</span>
+<span class="line-tx">[19:41:20.028] TX 0x83 搜索保活</span>
+<span class="line-rx">[19:41:20.036] RX 0x03 yaw=14.230 pitch=-3.540 roll=0.120 mode=SEARCH</span>
+<span class="line-tx">[19:41:20.119] 组合命令：解锁并进入自瞄</span>
+<span class="line-tx">[19:41:20.120] TX 0x88 解锁</span>
+<span class="line-tx">[19:41:20.126] TX 0x84 自瞄 yaw=12.500 pitch=-2.750</span>
+<span class="line-rx">[19:41:20.135] RX 0x03 yaw=12.700 pitch=-2.760 roll=0.081 mode=AUTO_AIM</span>
+<span class="line-warn">[19:41:20.188] 自瞄发送频率低于推荐 250Hz，当前 238Hz</span>
+<span class="line-err">[19:41:20.280] 串口瞬时超时</span>
+<span class="line-state">[19:41:20.510] 串口自动重连成功</span></div>
+</div>
+</section>
+</div>
+<script>
+const sessionStart=Date.now()-126000;
+let serialReconnect=true;
+let gimbalReconnect=true;
+const modes={
+standby:{label:'自稳',badge:'自稳',badgeBg:'#eef7ff',badgeText:'#3a78b2',feedback:'42 ms 前',yaw:'0.000°',pitch:'0.000°',roll:'0.000°',keepalive:'等待启动',attitude:'当前模式：自稳 / 等待命令',tx:'TX 组合命令：解锁并进入自稳\nTX 0x88 解锁',rx:'RX 0x03 云台反馈\nyaw=0.000 pitch=0.000 roll=0.000\nmode=STANDBY'},
+search:{label:'搜索模式',badge:'搜索模式',badgeBg:'#e9f8f0',badgeText:'#257a50',feedback:'12 ms 前',yaw:'14.230°',pitch:'-3.540°',roll:'0.120°',keepalive:'搜索保活',attitude:'当前模式：搜索模式 / 反馈间隔 12 ms',tx:'TX 0x83 搜索保活\nAA 55 00 83 41 D1 5A A5',rx:'RX 0x03 云台反馈\nyaw=14.230 pitch=-3.540 roll=0.120\nmode=SEARCH'},
+auto:{label:'自瞄模式',badge:'自瞄模式',badgeBg:'#fff6e4',badgeText:'#946718',feedback:'8 ms 前',yaw:'12.700°',pitch:'-2.760°',roll:'0.081°',keepalive:'自瞄保活',attitude:'当前模式：自瞄模式 / 反馈间隔 8 ms',tx:'TX 0x84 自瞄 yaw=12.500 pitch=-2.750\nAA 55 0A 84 D4 30 42 F5 44 D1 05 00 00 00 8E 92 5A A5',rx:'RX 0x03 云台反馈\nyaw=12.700 pitch=-2.760 roll=0.081\nmode=AUTO_AIM'},
+disabled:{label:'失能',badge:'失能',badgeBg:'#fff0f0',badgeText:'#a13d3d',feedback:'无反馈',yaw:'0.000°',pitch:'0.000°',roll:'0.000°',keepalive:'保活停止',attitude:'当前模式：失能 / 等待恢复',tx:'TX 0x87 请求失能',rx:'RX 0x08 失能通知\n请执行解锁或等待恢复'}};
+function id(v){return document.getElementById(v)}
+function pad(v){return String(v).padStart(2,'0')}
+function updateUptime(){const sec=Math.max(0,Math.floor((Date.now()-sessionStart)/1000));const mm=pad(Math.floor(sec/60));const ss=pad(sec%60);const text=`${mm}:${ss}`;id('uptimeTag').textContent=`连接时长：${text}`;id('uptimeValue').textContent=text}
+function appendLog(cls,text){const log=id('logLines');const stamp=new Date().toLocaleTimeString('zh-CN',{hour12:false});const span=document.createElement('span');span.className=cls;span.textContent=`[${stamp}] ${text}`;log.appendChild(document.createTextNode('\n'));log.appendChild(span);log.scrollTop=log.scrollHeight}
+function syncReconnectUI(){id('serialReconnectBtn').textContent=`串口自动重连：${serialReconnect?'开':'关'}`;id('gimbalReconnectBtn').textContent=`云台自动重连：${gimbalReconnect?'开':'关'}`;id('serialReconnectBtn').classList.toggle('active',serialReconnect);id('gimbalReconnectBtn').classList.toggle('active',gimbalReconnect);id('serialReconnectText').textContent=serialReconnect?'开启':'关闭';id('gimbalReconnectText').textContent=gimbalReconnect?'开启':'关闭'}
+function setMode(name){const m=modes[name];if(!m)return;document.body.dataset.mode=name;id('modeBadge').textContent=m.badge;id('modeBadge').style.background=m.badgeBg;id('modeBadge').style.color=m.badgeText;id('feedbackAge').textContent=m.feedback;id('sessionYaw').textContent=m.yaw.replace('°',' deg');id('sessionPitch').textContent=m.pitch.replace('°',' deg');id('sessionRoll').textContent=m.roll.replace('°',' deg');id('yawStat').textContent=m.yaw;id('pitchStat').textContent=m.pitch;id('rollStat').textContent=m.roll;id('keepaliveText').textContent=m.keepalive;id('attitudeNote').textContent=m.attitude;id('lastTx').textContent=m.tx;id('lastRx').textContent=m.rx}
+function commandStandby(){appendLog('line-tx','组合命令：解锁并进入自稳');appendLog('line-tx','TX 0x88 解锁');setMode('standby')}
+function commandSearch(){appendLog('line-tx','组合命令：解锁并进入搜索');appendLog('line-tx','TX 0x88 解锁');appendLog('line-tx','TX 0x83 搜索保活');setMode('search')}
+function commandAuto(){appendLog('line-tx','组合命令：解锁并进入自瞄');appendLog('line-tx','TX 0x88 解锁');appendLog('line-tx',`TX 0x84 自瞄 yaw=${id('autoYaw').textContent} pitch=${id('autoPitch').textContent}`);setMode('auto')}
+function commandDisable(){appendLog('line-tx','控制区：发送失能');setMode('disabled')}
+id('standbyBtn').addEventListener('click',commandStandby);
+id('searchBtn').addEventListener('click',commandSearch);
+id('autoBtn').addEventListener('click',commandAuto);
+id('disableBtn').addEventListener('click',commandDisable);
+id('stopKeepaliveBtn').addEventListener('click',()=>appendLog('line-warn','已停止周期保活'));
+id('handshakeBtn').addEventListener('click',()=>appendLog('line-tx','调试台：TX 0x81 握手'));
+id('unlockBtn').addEventListener('click',()=>appendLog('line-tx','调试台：TX 0x88 解锁'));
+id('reconnectBtn').addEventListener('click',()=>appendLog('line-state','调试台：立即重连'));
+id('clearLogBtn').addEventListener('click',()=>id('logLines').textContent='');
+id('serialReconnectBtn').addEventListener('click',()=>{serialReconnect=!serialReconnect;syncReconnectUI();appendLog('line-state',`串口自动重连${serialReconnect?'开启':'关闭'}`)});
+id('gimbalReconnectBtn').addEventListener('click',()=>{gimbalReconnect=!gimbalReconnect;syncReconnectUI();appendLog('line-state',`云台自动重连${gimbalReconnect?'开启':'关闭'}`)});
+setMode('search');syncReconnectUI();updateUptime();setInterval(updateUptime,1000)
+</script>
+</body>
+</html>
