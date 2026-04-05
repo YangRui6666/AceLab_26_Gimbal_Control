@@ -12,11 +12,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "stm32f4xx_hal.h"
-
-
-
-#define BSP_CAN_MAX_CURRENT 1
-
 extern CAN_HandleTypeDef hcan1;
 
 // 全局状态管理
@@ -37,14 +32,6 @@ typedef struct
     int16_t data_3;
     int16_t data_4;
 }gm6020_can_ctrl_t;
-
-typedef struct
-{
-    uint16_t canid;
-    int motor_index[4];
-    int count;
-}tx_group_t;
-
 
 /**
  * @brief       can初始化函数入口,用于
@@ -99,6 +86,37 @@ bool bsp_can_init(void)
     return true;
 }
 
+bool bsp_can_send_std(uint16_t std_id, const uint8_t data[8], uint8_t dlc)
+{
+    CAN_TxHeaderTypeDef tx_header;
+    uint8_t tx_data[8] = {0};
+    uint32_t tx_mailbox;
+
+    if (data == NULL || dlc > 8U)
+    {
+        return false;
+    }
+
+    memcpy(tx_data, data, dlc);
+
+    tx_header.StdId = std_id;
+    tx_header.IDE = CAN_ID_STD;
+    tx_header.RTR = CAN_RTR_DATA;
+    tx_header.DLC = dlc;
+
+    return HAL_CAN_AddTxMessage(&hcan1, &tx_header, tx_data, &tx_mailbox) == HAL_OK;
+}
+
+bool bsp_can_pop_rx(can_rx_msg_t *out)
+{
+    if (out == NULL)
+    {
+        return false;
+    }
+
+    return ring_buffer_read(&can_rx_buffer, out);
+}
+
 /**
  * @brief       用于控制电机的底层发送函数
  *              设计思路：调用该函数，直接给can总线去发送消息
@@ -115,14 +133,7 @@ bool bsp_can_init(void)
  */
 void dji_motor_tx(uint16_t tx_std_id, const int16_t data_1, const int16_t data_2, const int16_t data_3, const int16_t data_4)
 {
-    CAN_TxHeaderTypeDef tx_header;
     uint8_t tx_data[8];
-    uint32_t tx_mailbox;
-
-    tx_header.StdId = tx_std_id;
-    tx_header.IDE = CAN_ID_STD;                             // 标准帧
-    tx_header.RTR = CAN_RTR_DATA;                           // 数据帧
-    tx_header.DLC = 8;                                      // 数据长度 8 字节
 
     tx_data[0] = (uint8_t)(data_1 >> 8);        // 电机 1 高字节
     tx_data[1] = (uint8_t)(data_1 & 0xFF);      // 电机 1 低字节
@@ -133,7 +144,7 @@ void dji_motor_tx(uint16_t tx_std_id, const int16_t data_1, const int16_t data_2
     tx_data[6] = (uint8_t)(data_4 >> 8);        // 电机 4 高字节
     tx_data[7] = (uint8_t)(data_4 & 0xFF);      // 电机 4 低字节
 
-    if (HAL_CAN_AddTxMessage(&hcan1, &tx_header, tx_data, &tx_mailbox) != HAL_OK)
+    if (!bsp_can_send_std(tx_std_id, tx_data, 8U))
     {
         // 在此处添加错误处理逻辑，例如设置错误标志或重试
     }

@@ -5,8 +5,8 @@
 #include "Bsp/Inc/bsp_can.h"
 #include "Config/can_id.h"
 
-#define LOGIC_PITCH  (CAN_STDID_GIMBAL_PITCH_FB - 0x200)
-#define LOGIC_YAW  (CAN_STDID_GIMBAL_YAW_FB - 0x200)
+#define LOGIC_PITCH  (GIMBAL_PITCH_CAN_ID - 1U)
+#define LOGIC_YAW    (GIMBAL_YAW_CAN_ID - 1U)
 
 void devices_global_ctrl(int16_t yaw, int16_t pitch)
 {

@@ -53,7 +53,6 @@ add_executable(${CMAKE_PROJECT_NAME}
         user/Library/Kalman.c
         user/Debug/debug.c
         user/Debug/debug.h
-        user/Bsp/Src/bsp_can.cpp
         user/Devices/gm6020.cpp
         user/Devices/motor_manage.cpp
 )

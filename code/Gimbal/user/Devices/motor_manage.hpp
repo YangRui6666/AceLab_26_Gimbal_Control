@@ -5,6 +5,8 @@
 #ifndef GIMBAL_MOTOR_MANAGE_HPP
 #define GIMBAL_MOTOR_MANAGE_HPP
 
+#include <cstdint>
+
 #include "gm6020.hpp"
 
 class MotorManager
@@ -12,12 +14,13 @@ class MotorManager
 public:
     MotorManager();
 
-    void onCanFrame(uint16_t std_id, const MotorFeedback& fb);
+    bool onCanFrame(uint16_t std_id, const uint8_t data[8], uint8_t dlc, uint32_t tick);
+    void pollCanRx();
+    bool sendCurrentCommands() const;
     void setYawCurrent(int16_t current);
     void setPitchCurrent(int16_t current);
     MotorSnapshot yawSnapshot() const;
     MotorSnapshot pitchSnapshot() const;
-    void buildTxFrame(int16_t slots[4]) const;
 
 private:
     Gm6020Motor yaw_motor_;

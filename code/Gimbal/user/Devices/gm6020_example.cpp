@@ -8,15 +8,15 @@ void gm6020_example_usage(void)
 {
     MotorManager motors;
 
+    motors.pollCanRx();
     motors.setYawCurrent(5000);
     motors.setPitchCurrent(-2000);
 
     MotorSnapshot yaw_state = motors.yawSnapshot();
     MotorSnapshot pitch_state = motors.pitchSnapshot();
+    bool tx_ok = motors.sendCurrentCommands();
 
-    int16_t slots[4];
-    motors.buildTxFrame(slots);
     (void)yaw_state;
     (void)pitch_state;
-    (void)slots;
+    (void)tx_ok;
 }

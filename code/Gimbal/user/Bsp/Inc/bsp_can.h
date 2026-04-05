@@ -6,6 +6,11 @@
 #define VISION_F405_BSP_CAN_H
 #include <stdint.h>
 #include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "FreeRTOS.h"
 #include "../../Tools/ring_buffer.h"
 
@@ -43,6 +48,8 @@ typedef struct
 
 // 函数声明
 bool bsp_can_init(void);
+bool bsp_can_send_std(uint16_t std_id, const uint8_t data[8], uint8_t dlc);
+bool bsp_can_pop_rx(can_rx_msg_t *out);
 void bsp_ctrl_motor(const int16_t *motor_currents);
 void dji_motor_tx(uint16_t tx_std_id, const int16_t data_1, const int16_t data_2, const int16_t data_3, const int16_t data_4);
 
@@ -52,5 +59,9 @@ const gm6020_state_t* bsp_can_get_motor_state(uint8_t motor_id);
 int32_t get_can_get_motor_angle(uint8_t motor_id);
 bool bsp_can_motor_is_timeout(uint8_t motor_id);
 void bsp_can_reset_motor(uint8_t motor_id);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //VISION_F405_BSP_CAN_H
