@@ -6,11 +6,12 @@
 
 #include "Bsp/Inc/bsp_can.h"
 #include "Config/can_id.h"
+#include "Config/pid_config.h"
 
 namespace
 {
-constexpr MotorConfig kYawConfig = {GIMBAL_YAW_CAN_ID, 20000};
-constexpr MotorConfig kPitchConfig = {GIMBAL_PITCH_CAN_ID, 20000};
+constexpr MotorConfig kYawConfig = {GIMBAL_YAW_CAN_ID, GIMBAL_YAW_CURRENT_LIMIT};
+constexpr MotorConfig kPitchConfig = {GIMBAL_PITCH_CAN_ID, GIMBAL_PITCH_CURRENT_LIMIT};
 
 struct TxFrame
 {

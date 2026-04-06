@@ -11,6 +11,10 @@
 #include "../Config/pid_config.h"
 #include "../Config/imu_config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // ================== 基础PID控制器结构 ==================
 /**
  * @brief 增量式PID控制器结构体
@@ -128,6 +132,17 @@ typedef struct {
     uint32_t world_control_cycles; // 世界坐标控制周期计数
 } gimbal_world_state_t;
 
+typedef struct
+{
+    float position_deg;            // 当前位置(度)
+    float velocity_rpm;            // 当前速度(rpm)
+    float current_ma;              // 原始电流(mA)
+    float filtered_current_ma;     // 滤波电流(mA)
+    int8_t temp;                   // 当前温度(°C)
+    uint32_t last_update_tick;     // 最近反馈时间戳
+    bool motor_online;             // 电机在线状态
+} gimbal_axis_feedback_t;
+
 // ================== 函数声明 ==================
 
 /**
@@ -181,6 +196,15 @@ gimbal_control_system_t* gimbal_get_system(void);
 bool gimbal_set_position_target(float yaw_target, float pitch_target);
 
 /**
+ * @brief 更新编码器反馈数据
+ * @param yaw_feedback Yaw轴反馈
+ * @param pitch_feedback Pitch轴反馈
+ * @return 更新是否成功
+ */
+bool gimbal_set_encoder_feedback(const gimbal_axis_feedback_t* yaw_feedback,
+                                 const gimbal_axis_feedback_t* pitch_feedback);
+
+/**
  * @brief 位置环控制更新 (200Hz调用)
  * @return 更新是否成功
  */
@@ -218,6 +242,13 @@ void gimbal_get_status(float* yaw_pos, float* pitch_pos,
  * @return 控制是否成功
  */
 bool gimbal_control_task(void);
+
+/**
+ * @brief 获取当前输出电流命令
+ * @param yaw_current 返回Yaw电流
+ * @param pitch_current 返回Pitch电流
+ */
+void gimbal_get_output_currents(int16_t* yaw_current, int16_t* pitch_current);
 
 // ================== 世界坐标系控制接口 ==================
 
@@ -263,5 +294,9 @@ bool gimbal_check_angle_limits(float yaw, float pitch);
 
 // 兼容性接口(保持原有函数名)
 void moudle_ctrl_gimbal(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //VISION_F405_PID_H

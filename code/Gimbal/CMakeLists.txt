@@ -39,13 +39,11 @@ add_executable(${CMAKE_PROJECT_NAME}
         user/Bsp/Src/bsp_can.c
         user/Bsp/Src/bsp_bmi088.c
         user/Bsp/Src/bsp_usb.c
-        user/Module/pid.c
         user/Module/imu_fusion.c
         user/Config/motor_config.c
         user/Config/motor_config.h
         user/Config/can_id.h
         user/Tools/ring_buffer.c
-        user/Devices/devices_gm6020.c
         user/Tasks/ControlTask.c
         user/Tasks/VisionTask.c
         user/Module/pid.h
@@ -53,7 +51,11 @@ add_executable(${CMAKE_PROJECT_NAME}
         user/Library/Kalman.c
         user/Debug/debug.c
         user/Debug/debug.h
+        user/Module/pid.cpp
+        user/Module/pid_controller.cpp
+        user/Module/gimbal_controller.cpp
         user/Devices/gm6020.cpp
+        user/Devices/devices_gm6020.cpp
         user/Devices/motor_manage.cpp
 )
 

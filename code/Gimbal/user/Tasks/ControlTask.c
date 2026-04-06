@@ -6,13 +6,32 @@
 #include "FreeRTOS.h"
 #include "cmsis_os2.h"
 #include "task.h"
-#include "../Bsp/Inc/bsp_can.h"
 #include "../Bsp/Inc/bsp_bmi088.h"
+#include "../Devices/devices_gm6020.h"
 #include "../Module/pid.h"
 #include "../Module/imu_fusion.h"
 #include "../Config/vision_config.h"
 #include "../Config/imu_config.h"
 #include "VisionTask.h"
+
+static gimbal_axis_feedback_t make_axis_feedback(const devices_gm6020_feedback_t* device_feedback)
+{
+    gimbal_axis_feedback_t axis_feedback = {0};
+
+    if (device_feedback == NULL)
+    {
+        return axis_feedback;
+    }
+
+    axis_feedback.position_deg = device_feedback->position_deg;
+    axis_feedback.velocity_rpm = device_feedback->velocity_rpm;
+    axis_feedback.current_ma = device_feedback->current_ma;
+    axis_feedback.filtered_current_ma = device_feedback->filtered_current_ma;
+    axis_feedback.temp = device_feedback->temp;
+    axis_feedback.last_update_tick = device_feedback->last_rx_tick;
+    axis_feedback.motor_online = device_feedback->online;
+    return axis_feedback;
+}
 
 void ControlStartTask(void *argument)
 {
@@ -52,6 +71,9 @@ void ControlStartTask(void *argument)
     /* Infinite loop */
     while(1)
     {
+        devices_gm6020_feedback_t yaw_feedback = {0};
+        devices_gm6020_feedback_t pitch_feedback = {0};
+
         // 1. 读取IMU世界坐标角度
         module_imu_get_float(&world_roll, &world_pitch, &world_yaw);
 
@@ -63,12 +85,23 @@ void ControlStartTask(void *argument)
             gyro_pitch_rate = raw_imu_data.gyro_y * IMU_GYRO_SCALE_2000DPS;
         }
 
-        // 3. 处理CAN接收数据 (必须首先调用)
-        bsp_process_can_rx_data();
+        // 3. 处理设备反馈
+        devices_gimbal_poll();
+
+        bool yaw_feedback_ok = devices_gimbal_get_yaw_feedback(&yaw_feedback);
+        bool pitch_feedback_ok = devices_gimbal_get_pitch_feedback(&pitch_feedback);
+        if (yaw_feedback_ok && pitch_feedback_ok)
+        {
+            gimbal_axis_feedback_t yaw_axis_feedback = make_axis_feedback(&yaw_feedback);
+            gimbal_axis_feedback_t pitch_axis_feedback = make_axis_feedback(&pitch_feedback);
+            (void)gimbal_set_encoder_feedback(&yaw_axis_feedback, &pitch_axis_feedback);
+        }
 
         // 4. 检查通信状态和控制逻辑
-        bool can_communication_ok = !bsp_can_motor_is_timeout(0) && !bsp_can_motor_is_timeout(1);
+        bool can_communication_ok = yaw_feedback_ok && pitch_feedback_ok &&
+                                    yaw_feedback.online && pitch_feedback.online;
         bool imu_communication_ok = bsp_imu_check();
+        bool world_control_enabled = gimbal_get_world_state()->world_control_enable;
 
         if (can_communication_ok)
         {
@@ -105,7 +138,7 @@ void ControlStartTask(void *argument)
                     }
 
                     // 设置云台目标位置
-                    if (WORLD_COORDINATE_CONTROL_ENABLE && imu_communication_ok)
+                    if (world_control_enabled && imu_communication_ok)
                     {
                         gimbal_set_world_target(sentry_yaw_target, SENTRY_PITCH_TARGET);
                     }
@@ -119,7 +152,7 @@ void ControlStartTask(void *argument)
             }
 
             // 4b. 执行控制算法
-            if (WORLD_COORDINATE_CONTROL_ENABLE && imu_communication_ok)
+            if (world_control_enabled && imu_communication_ok)
             {
                 // 世界坐标系控制 (使用IMU和陀螺仪数据)
                 if (!gimbal_world_coordinate_control(world_yaw, world_pitch,
@@ -127,6 +160,7 @@ void ControlStartTask(void *argument)
                 {
                     // 世界坐标控制失败，切换到电机编码器控制
                     gimbal_set_world_control_enable(false);
+                    (void)gimbal_control_task();
                 }
             }
             else
@@ -138,6 +172,12 @@ void ControlStartTask(void *argument)
                     // 这里可以添加额外的错误处理逻辑
                 }
             }
+
+            int16_t yaw_current = 0;
+            int16_t pitch_current = 0;
+            gimbal_get_output_currents(&yaw_current, &pitch_current);
+            devices_gimbal_set_currents(yaw_current, pitch_current);
+            (void)devices_gimbal_send();
         }
         else
         {
@@ -145,8 +185,8 @@ void ControlStartTask(void *argument)
             gimbal_emergency_stop();
 
             // 发送安全电流(零电流)
-            int16_t safe_currents[8] = {0};
-            bsp_ctrl_motor(safe_currents);
+            devices_gimbal_stop();
+            (void)devices_gimbal_send();
         }
 
         // 6. 调试信息输出(可选)

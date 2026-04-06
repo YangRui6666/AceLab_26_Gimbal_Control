@@ -28,6 +28,7 @@ struct MotorSnapshot
     int32_t total_angle = 0;
     int16_t speed = 0;
     int16_t current = 0;
+    float filtered_current = 0.0f;
     int8_t temp = 0;
     uint32_t last_rx_tick = 0;
 };

@@ -52,6 +52,8 @@
 #define PITCH_ANGLE_MAX             20.0f   // Pitch轴最大角度
 
 // 电流限制 (单位：mA)
+#define GIMBAL_YAW_CURRENT_LIMIT    20000   // Yaw电机目标电流限幅
+#define GIMBAL_PITCH_CURRENT_LIMIT  20000   // Pitch电机目标电流限幅
 #define CURRENT_LIMIT_MAX           30000   // 最大电流限制
 #define CURRENT_EMERGENCY_LEVEL     25000   // 紧急停止电流阈值
 
@@ -59,8 +61,8 @@
 #define TEMP_WARNING_LEVEL          70      // 温度警告阈值
 #define TEMP_PROTECTION_LEVEL       80      // 温度保护阈值
 
-// 超时保护 (单位：ms) - 复用现有BSP定义
-#define MOTOR_COMM_TIMEOUT_MS       MOTOR_TIMEOUT_MS
+// 超时保护 (单位：ms)
+#define MOTOR_COMM_TIMEOUT_MS       50U
 
 // ================== PID算法配置 ==================
 // 死区设置

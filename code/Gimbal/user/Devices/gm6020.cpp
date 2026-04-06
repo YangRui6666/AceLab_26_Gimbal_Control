@@ -4,6 +4,7 @@
 
 #include "gm6020.hpp"
 
+#include "Bsp/Inc/bsp_can.h"
 #include "Config/can_id.h"
 
 namespace
@@ -58,6 +59,15 @@ void Gm6020Motor::updateFromFeedback(const MotorFeedback& fb)
     snapshot_.raw_angle = fb.raw_angle;
     snapshot_.speed = fb.speed;
     snapshot_.current = fb.current;
+    if (snapshot_.last_rx_tick == 0U)
+    {
+        snapshot_.filtered_current = static_cast<float>(fb.current);
+    }
+    else
+    {
+        snapshot_.filtered_current = CURRENT_FILTER_ALPHA * static_cast<float>(fb.current) +
+                                     (1.0f - CURRENT_FILTER_ALPHA) * snapshot_.filtered_current;
+    }
     snapshot_.temp = fb.temp;
     snapshot_.last_rx_tick = fb.tick;
 }
