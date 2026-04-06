@@ -1,65 +1,113 @@
 /**
  * @file vision_config.h
- * @brief 视觉通信系统配置参数
+ * @brief 视觉通信系统配置与共享数据定义
  * @author CORE
- * @date 2026-03-15
+ * @date 2026-04-06
  */
 
 #ifndef VISION_CONFIG_H
 #define VISION_CONFIG_H
 
+#include <stdbool.h>
+#include <stdint.h>
+
 // USB通信配置
-#define VISION_USB_RX_BUFFER_SIZE   512     // USB接收缓冲区大小
-#define VISION_USB_TX_BUFFER_SIZE   256     // USB发送缓冲区大小
-#define VISION_PROTOCOL_MAX_LINE    256     // 协议行最大长度
+#define VISION_USB_RX_BUFFER_SIZE             512U
+#define VISION_USB_TX_BUFFER_SIZE             256U
+#define VISION_PROTOCOL_RX_CHUNK_SIZE         64U
 
-// 超时配置
-#define VISION_DATA_TIMEOUT_MS      1000    // 视觉数据超时时间(ms)
-#define VISION_STATUS_SEND_PERIOD   20      // 状态发送周期(ms) - 50Hz
-#define VISION_USB_TIMEOUT_MS       100     // USB发送超时(ms)
+// 协议帧配置
+#define VISION_PROTOCOL_MAX_DATA_LEN          16U
+#define VISION_PROTOCOL_MAX_FRAME_LEN         (2U + 1U + 1U + VISION_PROTOCOL_MAX_DATA_LEN + 2U + 2U)
+#define VISION_STATUS_PAYLOAD_LEN             12U
+#define VISION_LOCK_PAYLOAD_LEN               5U
+#define VISION_SEARCH_PAYLOAD_LEN             4U
+#define VISION_AUTO_AIM_PAYLOAD_LEN           10U
 
-// 哨兵模式配置
-#define SENTRY_YAW_MIN             -90.0f   // 哨兵模式Yaw最小角度(度)
-#define SENTRY_YAW_MAX              90.0f   // 哨兵模式Yaw最大角度(度)
-#define SENTRY_SCAN_SPEED           30.0f   // 扫描速度(度/秒)
-#define SENTRY_UPDATE_FREQ          20      // 哨兵模式更新频率(Hz)
-#define SENTRY_PITCH_TARGET         0.0f    // 哨兵模式Pitch目标角度(度)
+#define VISION_FRAME_SOF_0                    0xAAU
+#define VISION_FRAME_SOF_1                    0x55U
+#define VISION_FRAME_EOF_0                    0x5AU
+#define VISION_FRAME_EOF_1                    0xA5U
 
-// 角度限制(安全保护)
-#define VISION_YAW_LIMIT_MIN       -180.0f  // Yaw轴最小限位(度)
-#define VISION_YAW_LIMIT_MAX        180.0f  // Yaw轴最大限位(度)
-#define VISION_PITCH_LIMIT_MIN      -30.0f  // Pitch轴最小限位(度)
-#define VISION_PITCH_LIMIT_MAX       20.0f  // Pitch轴最大限位(度)
+// 任务节拍与超时
+#define VISION_TASK_POLL_PERIOD_MS            5U
+#define VISION_STATUS_SEND_PERIOD_MS          20U
+#define VISION_COMMUNICATION_TIMEOUT_MS       60000U
+#define VISION_SEARCH_TIMEOUT_MS              500U
+#define VISION_AUTO_AIM_TIMEOUT_MS            500U
 
-// JSON解析配置
-#define VISION_JSON_KEY_MAX_LEN     16      // JSON键名最大长度
-#define VISION_JSON_VALUE_MAX_LEN   16      // JSON值最大长度
+// 搜索模式配置
+#define SEARCH_YAW_AMPLITUDE_DEG              60.0f
+#define SEARCH_PITCH_TARGET_DEG               0.0f
+#define SEARCH_MAX_YAW_SPEED_DEG_PER_S        30.0f
+
+// 角度限制
+#define VISION_YAW_LIMIT_MIN                  -60.0f
+#define VISION_YAW_LIMIT_MAX                   60.0f
+#define VISION_PITCH_LIMIT_MIN                -15.0f
+#define VISION_PITCH_LIMIT_MAX                 45.0f
+
+// 角度定点缩放: 协议中 1LSB = 0.01°
+#define VISION_ANGLE_SCALE                    100.0f
 
 // 模式定义
-typedef enum {
-    GIMBAL_MODE_MANUAL = 0,     // 手动模式
-    GIMBAL_MODE_AUTO = 1,       // 自瞄模式
-    GIMBAL_MODE_SENTRY = 2      // 哨兵模式
+typedef enum
+{
+    GIMBAL_MODE_STABLE = 0,
+    GIMBAL_MODE_SEARCH = 1,
+    GIMBAL_MODE_AUTO_AIM = 2,
+    GIMBAL_MODE_LOCK_PROTECT = 3,
+    GIMBAL_MODE_DISABLE = 4
 } gimbal_mode_t;
 
-// 视觉数据结构
-typedef struct {
-    bool target_detected;       // 目标检测状态
-    float target_yaw;          // 目标Yaw角度(度)
-    float target_pitch;        // 目标Pitch角度(度)
-    float target_roll;         // 目标Roll角度(度)
-    uint32_t last_update_tick; // 上次更新时间戳
-    bool data_valid;           // 数据有效性
-} vision_data_t;
+// 协议命令字
+typedef enum
+{
+    VISION_PACKET_STATUS = 0x03,
+    VISION_PACKET_LOCKED = 0x08,
+    VISION_PACKET_ENABLE_STREAM = 0x82,
+    VISION_PACKET_ENTER_SEARCH = 0x83,
+    VISION_PACKET_AUTO_AIM = 0x84,
+    VISION_PACKET_LOCK = 0x87,
+    VISION_PACKET_UNLOCK = 0x88
+} vision_packet_cmd_t;
 
-// 状态信息结构
-typedef struct {
-    float current_yaw;         // 当前Yaw角度(度)
-    float current_pitch;       // 当前Pitch角度(度)
-    float gyro_yaw;           // 陀螺仪Yaw角速度(度/秒)
-    float gyro_pitch;         // 陀螺仪Pitch角速度(度/秒)
-    gimbal_mode_t mode;       // 当前模式
-    uint32_t timestamp;       // 时间戳
-} gimbal_status_t;
+// 锁定原因定义
+typedef enum
+{
+    VISION_LOCK_REASON_MANUAL = 1,
+    VISION_LOCK_REASON_BOOT_TIMEOUT = 2,
+    VISION_LOCK_REASON_COMM_TIMEOUT = 3
+} vision_lock_reason_t;
+
+// VisionTask 发布给 ControlTask 的最新命令快照。
+typedef struct
+{
+    gimbal_mode_t requested_mode;
+    bool feedback_enabled;
+    float yaw_error_deg;
+    float pitch_error_deg;
+    uint32_t command_timestamp;
+    uint32_t last_valid_packet_tick;
+    uint32_t mode_sequence;
+    uint32_t auto_aim_sequence;
+} vision_command_mailbox_t;
+
+// ControlTask 发布给 VisionTask 的云台反馈快照。
+typedef struct
+{
+    float yaw_deg;
+    float pitch_deg;
+    float roll_deg;
+    float yaw_rate_dps;
+    float pitch_rate_dps;
+    gimbal_mode_t current_mode;
+    uint32_t timestamp;
+    uint32_t sequence;
+    bool disable_active;
+    bool can_online;
+    bool imu_online;
+    bool world_control_enabled;
+} gimbal_feedback_snapshot_t;
 
 #endif // VISION_CONFIG_H

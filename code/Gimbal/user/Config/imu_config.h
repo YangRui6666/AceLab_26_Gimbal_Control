@@ -23,10 +23,10 @@
 
 // ================== 安全限位 ==================
 // 世界坐标系角度限制
-#define WORLD_YAW_LIMIT_MIN        -180.0f  // Yaw范围限制
-#define WORLD_YAW_LIMIT_MAX         180.0f
-#define WORLD_PITCH_LIMIT_MIN       -30.0f  // Pitch范围限制 (避免撞击)
-#define WORLD_PITCH_LIMIT_MAX        20.0f
+#define WORLD_YAW_LIMIT_MIN         -60.0f  // Yaw范围限制
+#define WORLD_YAW_LIMIT_MAX          60.0f
+#define WORLD_PITCH_LIMIT_MIN       -15.0f  // Pitch范围限制 (避免撞击)
+#define WORLD_PITCH_LIMIT_MAX        45.0f
 
 // ================== 滤波参数 ==================
 // 陀螺仪低通滤波系数 (0.0-1.0, 越小滤波越强)

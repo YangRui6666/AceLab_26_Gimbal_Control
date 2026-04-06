@@ -1,20 +1,25 @@
 //
 // Created by CORE on 2026/3/14.
-// Updated by CORE on 2026/3/15 - 集成双环PID控制
+// Updated by CORE on 2026/4/6 - 对齐新版视觉协议与增量式自瞄语义
 //
 
 #include "FreeRTOS.h"
 #include "cmsis_os2.h"
 #include "task.h"
+
+#include <math.h>
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "../Bsp/Inc/bsp_bmi088.h"
-#include "../Devices/devices_gm6020.h"
-#include "../Module/pid.h"
-#include "../Module/imu_fusion.h"
-#include "../Config/vision_config.h"
 #include "../Config/imu_config.h"
+#include "../Config/vision_config.h"
+#include "../Devices/devices_gm6020.h"
+#include "../Module/imu_fusion.h"
+#include "../Module/pid.h"
 #include "VisionTask.h"
 
-static gimbal_axis_feedback_t make_axis_feedback(const devices_gm6020_feedback_t* device_feedback)
+static gimbal_axis_feedback_t make_axis_feedback(const devices_gm6020_feedback_t *device_feedback)
 {
     // 任务层只处理统一后的反馈视图，不直接依赖底层设备快照。
     gimbal_axis_feedback_t axis_feedback = {0};
@@ -34,188 +39,235 @@ static gimbal_axis_feedback_t make_axis_feedback(const devices_gm6020_feedback_t
     return axis_feedback;
 }
 
+static float clamp_float(float value, float min_value, float max_value)
+{
+    if (value > max_value)
+    {
+        return max_value;
+    }
+
+    if (value < min_value)
+    {
+        return min_value;
+    }
+
+    return value;
+}
+
+static void apply_gimbal_target(float yaw_target_deg, float pitch_target_deg, bool use_world_control)
+{
+    const float limited_yaw = clamp_float(yaw_target_deg, VISION_YAW_LIMIT_MIN, VISION_YAW_LIMIT_MAX);
+    const float limited_pitch = clamp_float(pitch_target_deg, VISION_PITCH_LIMIT_MIN, VISION_PITCH_LIMIT_MAX);
+
+    if (use_world_control)
+    {
+        (void)gimbal_set_world_target(limited_yaw, limited_pitch);
+    }
+    else
+    {
+        (void)gimbal_set_position_target(limited_yaw, limited_pitch);
+    }
+}
+
 void ControlStartTask(void *argument)
 {
-    /* USER CODE BEGIN ControlStartTask */
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    const TickType_t xFrequency = pdMS_TO_TICKS(1);  // 1ms周期
+    const TickType_t xFrequency = pdMS_TO_TICKS(1);
+    const bool use_world_control = WORLD_COORDINATE_CONTROL_ENABLE;
+    const float search_omega = SEARCH_MAX_YAW_SPEED_DEG_PER_S / SEARCH_YAW_AMPLITUDE_DEG;
 
-    // IMU数据变量
-    float world_yaw = 0.0f, world_pitch = 0.0f, world_roll = 0.0f;
-    float gyro_yaw_rate = 0.0f, gyro_pitch_rate = 0.0f;
+    float world_yaw = 0.0f;
+    float world_pitch = 0.0f;
+    float world_roll = 0.0f;
+    float gyro_yaw_rate = 0.0f;
+    float gyro_pitch_rate = 0.0f;
     bmi088_data_t raw_imu_data = {0};
 
-    // 初始化云台控制系统
+    uint32_t last_auto_aim_sequence = 0U;
+    uint32_t feedback_sequence = 0U;
+    uint32_t search_start_tick = xTaskGetTickCount();
+    bool disable_latched = false;
+    gimbal_mode_t applied_mode = GIMBAL_MODE_STABLE;
+
+    (void)argument;
+
     if (!gimbal_control_init())
     {
-        // 初始化失败，进入错误处理
-        while(1)
+        while (1)
         {
-            // TODO: 添加错误指示(如LED闪烁)
             vTaskDelay(pdMS_TO_TICKS(500));
         }
     }
 
-    // 初始化世界坐标控制模式
-    gimbal_set_world_control_enable(WORLD_COORDINATE_CONTROL_ENABLE);
+    (void)gimbal_set_world_control_enable(use_world_control);
+    apply_gimbal_target(0.0f, 0.0f, use_world_control);
 
-    // 设置初始目标位置(水平居中)
-    if (WORLD_COORDINATE_CONTROL_ENABLE)
-    {
-        gimbal_set_world_target(0.0f, 0.0f);  // 世界坐标系目标
-    }
-    else
-    {
-        gimbal_set_position_target(0.0f, 0.0f);  // 电机编码器目标
-    }
-
-    /* Infinite loop */
-    while(1)
+    while (1)
     {
         devices_gm6020_feedback_t yaw_feedback = {0};
         devices_gm6020_feedback_t pitch_feedback = {0};
+        vision_command_mailbox_t command = {
+            .requested_mode = GIMBAL_MODE_STABLE
+        };
+        gimbal_feedback_snapshot_t feedback_snapshot = {0};
+        gimbal_mode_t requested_mode = GIMBAL_MODE_STABLE;
+        gimbal_mode_t actual_mode = GIMBAL_MODE_STABLE;
+        const uint32_t current_tick = xTaskGetTickCount();
 
-        // 1. 读取IMU世界坐标角度
+        float yaw_pos = 0.0f;
+        float pitch_pos = 0.0f;
+        float yaw_vel = 0.0f;
+        float pitch_vel = 0.0f;
+
         module_imu_get_float(&world_roll, &world_pitch, &world_yaw);
 
-        // 2. 读取陀螺仪原始角速度数据
         if (bsp_imu_get(&raw_imu_data))
         {
-            // 转换为物理单位 (deg/s)
             gyro_yaw_rate = raw_imu_data.gyro_z * IMU_GYRO_SCALE_2000DPS;
             gyro_pitch_rate = raw_imu_data.gyro_y * IMU_GYRO_SCALE_2000DPS;
         }
 
-        // 3. 处理设备反馈
         devices_gimbal_poll();
 
-        bool yaw_feedback_ok = devices_gimbal_get_yaw_feedback(&yaw_feedback);
-        bool pitch_feedback_ok = devices_gimbal_get_pitch_feedback(&pitch_feedback);
+        const bool yaw_feedback_ok = devices_gimbal_get_yaw_feedback(&yaw_feedback);
+        const bool pitch_feedback_ok = devices_gimbal_get_pitch_feedback(&pitch_feedback);
         if (yaw_feedback_ok && pitch_feedback_ok)
         {
-            // 将设备层反馈转换成控制层输入。
             gimbal_axis_feedback_t yaw_axis_feedback = make_axis_feedback(&yaw_feedback);
             gimbal_axis_feedback_t pitch_axis_feedback = make_axis_feedback(&pitch_feedback);
             (void)gimbal_set_encoder_feedback(&yaw_axis_feedback, &pitch_axis_feedback);
         }
 
-        // 4. 检查通信状态和控制逻辑
-        bool can_communication_ok = yaw_feedback_ok && pitch_feedback_ok &&
-                                    yaw_feedback.online && pitch_feedback.online;
-        bool imu_communication_ok = bsp_imu_check();
-        bool world_control_enabled = gimbal_get_world_state()->world_control_enable;
+        gimbal_get_status(&yaw_pos, &pitch_pos, &yaw_vel, &pitch_vel);
 
-        if (can_communication_ok)
+        const bool can_communication_ok = yaw_feedback_ok && pitch_feedback_ok &&
+                                          yaw_feedback.online && pitch_feedback.online;
+        const bool imu_communication_ok = bsp_imu_check();
+
+        (void)vision_read_command_mailbox(&command);
+        requested_mode = command.requested_mode;
+
+        if (!disable_latched && (!can_communication_ok || !imu_communication_ok))
         {
-            // 4a. 哨兵模式处理 (保持现有逻辑)
-            static float sentry_yaw_target = 0.0f;
-            static uint32_t last_sentry_update = 0;
-            static int8_t scan_direction = 1;  // 1为正向，-1为反向
+            disable_latched = true;
+        }
 
-            gimbal_mode_t current_mode = vision_get_current_mode();
-
-            if (current_mode == GIMBAL_MODE_SENTRY)
-            {
-                uint32_t current_tick = xTaskGetTickCount();
-
-                // 哨兵模式更新频率控制 (SENTRY_UPDATE_FREQ Hz)
-                if (current_tick - last_sentry_update >= pdMS_TO_TICKS(1000 / SENTRY_UPDATE_FREQ))
-                {
-                    // 计算扫描步长 (度/更新周期)
-                    float scan_step = SENTRY_SCAN_SPEED / (float)SENTRY_UPDATE_FREQ;
-
-                    // 更新目标角度
-                    sentry_yaw_target += scan_step * scan_direction;
-
-                    // 检查扫描边界，调整方向
-                    if (sentry_yaw_target >= SENTRY_YAW_MAX)
-                    {
-                        sentry_yaw_target = SENTRY_YAW_MAX;
-                        scan_direction = -1;  // 反向扫描
-                    }
-                    else if (sentry_yaw_target <= SENTRY_YAW_MIN)
-                    {
-                        sentry_yaw_target = SENTRY_YAW_MIN;
-                        scan_direction = 1;   // 正向扫描
-                    }
-
-                    // 设置云台目标位置
-                    if (world_control_enabled && imu_communication_ok)
-                    {
-                        gimbal_set_world_target(sentry_yaw_target, SENTRY_PITCH_TARGET);
-                    }
-                    else
-                    {
-                        gimbal_set_position_target(sentry_yaw_target, SENTRY_PITCH_TARGET);
-                    }
-
-                    last_sentry_update = current_tick;
-                }
-            }
-
-            // 4b. 执行控制算法
-            if (world_control_enabled && imu_communication_ok)
-            {
-                // 世界坐标系控制 (使用IMU和陀螺仪数据)
-                if (!gimbal_world_coordinate_control(world_yaw, world_pitch,
-                                                   gyro_yaw_rate, gyro_pitch_rate))
-                {
-                    // 世界坐标控制失败，切换到电机编码器控制
-                    gimbal_set_world_control_enable(false);
-                    (void)gimbal_control_task();
-                }
-            }
-            else
-            {
-                // 电机编码器控制 (传统双环PID)
-                if (!gimbal_control_task())
-                {
-                    // 控制失败，已自动触发紧急停止
-                    // 这里可以添加额外的错误处理逻辑
-                }
-            }
-
-            int16_t yaw_current = 0;
-            int16_t pitch_current = 0;
-            // 控制器输出最终电流后，由设备层统一发送。
-            gimbal_get_output_currents(&yaw_current, &pitch_current);
-            devices_gimbal_set_currents(yaw_current, pitch_current);
-            (void)devices_gimbal_send();
+        if (disable_latched || requested_mode == GIMBAL_MODE_DISABLE)
+        {
+            disable_latched = true;
+            applied_mode = GIMBAL_MODE_DISABLE;
         }
         else
         {
-            // 5. CAN通信异常，触发紧急停止
-            gimbal_emergency_stop();
+            if (requested_mode != applied_mode)
+            {
+                if (requested_mode == GIMBAL_MODE_SEARCH)
+                {
+                    search_start_tick = current_tick;
+                }
 
-            // 发送安全电流(零电流)
+                applied_mode = requested_mode;
+            }
+
+            switch (applied_mode)
+            {
+                case GIMBAL_MODE_STABLE:
+                    apply_gimbal_target(0.0f, 0.0f, use_world_control);
+                    break;
+
+                case GIMBAL_MODE_SEARCH:
+                {
+                    const float elapsed_s = ((float)(current_tick - search_start_tick)) / 1000.0f;
+                    const float yaw_target = SEARCH_YAW_AMPLITUDE_DEG * sinf(search_omega * elapsed_s);
+                    apply_gimbal_target(yaw_target, SEARCH_PITCH_TARGET_DEG, use_world_control);
+                    break;
+                }
+
+                case GIMBAL_MODE_AUTO_AIM:
+                    if (command.auto_aim_sequence != last_auto_aim_sequence)
+                    {
+                        const float base_yaw = use_world_control ? world_yaw : yaw_pos;
+                        const float base_pitch = use_world_control ? world_pitch : pitch_pos;
+
+                        apply_gimbal_target(base_yaw + command.yaw_error_deg,
+                                            base_pitch + command.pitch_error_deg,
+                                            use_world_control);
+                        last_auto_aim_sequence = command.auto_aim_sequence;
+                    }
+                    break;
+
+                case GIMBAL_MODE_LOCK_PROTECT:
+                    break;
+
+                case GIMBAL_MODE_DISABLE:
+                default:
+                    disable_latched = true;
+                    applied_mode = GIMBAL_MODE_DISABLE;
+                    break;
+            }
+        }
+
+        if (disable_latched)
+        {
+            gimbal_emergency_stop();
             devices_gimbal_stop();
             (void)devices_gimbal_send();
+            actual_mode = GIMBAL_MODE_DISABLE;
         }
-
-        // 6. 调试信息输出(可选)
-        #ifdef DEBUG_IMU_WORLD_COORDINATE
-        static uint32_t debug_counter = 0;
-        debug_counter++;
-
-        // 每1秒输出一次状态信息
-        if (debug_counter >= 1000)
+        else if (applied_mode == GIMBAL_MODE_LOCK_PROTECT)
         {
-            debug_counter = 0;
-
-            // TODO: 通过USB虚拟串口输出调试信息
-            // printf("World: Yaw=%.1f°, Pitch=%.1f°, GyroYaw=%.1f°/s, GyroPitch=%.1f°/s\n",
-            //        world_yaw, world_pitch, gyro_yaw_rate, gyro_pitch_rate);
-
-            float yaw_pos, pitch_pos, yaw_vel, pitch_vel;
-            gimbal_get_status(&yaw_pos, &pitch_pos, &yaw_vel, &pitch_vel);
-
-            // printf("Motor: Yaw=%.2f°(%.0frpm), Pitch=%.2f°(%.0frpm)\n",
-            //        yaw_pos, yaw_vel, pitch_pos, pitch_vel);
+            devices_gimbal_stop();
+            (void)devices_gimbal_send();
+            actual_mode = GIMBAL_MODE_LOCK_PROTECT;
         }
-        #endif
+        else
+        {
+            bool control_ok = false;
 
-        // 7. 1ms精确延时
+            if (use_world_control)
+            {
+                control_ok = gimbal_world_coordinate_control(world_yaw, world_pitch,
+                                                             gyro_yaw_rate, gyro_pitch_rate);
+            }
+            else
+            {
+                control_ok = gimbal_control_task();
+            }
+
+            if (!control_ok)
+            {
+                disable_latched = true;
+                gimbal_emergency_stop();
+                devices_gimbal_stop();
+                (void)devices_gimbal_send();
+                actual_mode = GIMBAL_MODE_DISABLE;
+            }
+            else
+            {
+                int16_t yaw_current = 0;
+                int16_t pitch_current = 0;
+
+                gimbal_get_output_currents(&yaw_current, &pitch_current);
+                devices_gimbal_set_currents(yaw_current, pitch_current);
+                (void)devices_gimbal_send();
+                actual_mode = applied_mode;
+            }
+        }
+
+        feedback_snapshot.yaw_deg = use_world_control ? world_yaw : yaw_pos;
+        feedback_snapshot.pitch_deg = use_world_control ? world_pitch : pitch_pos;
+        feedback_snapshot.roll_deg = world_roll;
+        feedback_snapshot.yaw_rate_dps = gyro_yaw_rate;
+        feedback_snapshot.pitch_rate_dps = gyro_pitch_rate;
+        feedback_snapshot.current_mode = actual_mode;
+        feedback_snapshot.timestamp = current_tick;
+        feedback_snapshot.sequence = ++feedback_sequence;
+        feedback_snapshot.disable_active = disable_latched;
+        feedback_snapshot.can_online = can_communication_ok;
+        feedback_snapshot.imu_online = imu_communication_ok;
+        feedback_snapshot.world_control_enabled = use_world_control && !disable_latched;
+        vision_publish_feedback_snapshot(&feedback_snapshot);
+
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
-    /* USER CODE END ControlStartTask */
 }

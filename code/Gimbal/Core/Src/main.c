@@ -155,7 +155,7 @@ int main(void)
 
   /* Create the semaphores(s) */
   /* creation of VisionBinarySem */
-  VisionBinarySemHandle = osSemaphoreNew(1, 1, &VisionBinarySem_attributes);
+  VisionBinarySemHandle = osSemaphoreNew(1, 0, &VisionBinarySem_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */

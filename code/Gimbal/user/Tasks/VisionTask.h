@@ -2,7 +2,7 @@
  * @file VisionTask.h
  * @brief 视觉通信任务头文件
  * @author CORE
- * @date 2026-03-15
+ * @date 2026-04-06
  */
 
 #ifndef VISION_TASK_H
@@ -21,22 +21,18 @@ extern "C" {
 void StartVisionTask03(void *argument);
 
 /**
- * @brief 获取当前云台工作模式
- * @retval 当前模式
+ * @brief 读取最新的视觉命令邮箱快照
+ * @param out 输出缓冲区
+ * @retval true 读取成功
+ * @retval false 参数为空
  */
-gimbal_mode_t vision_get_current_mode(void);
+bool vision_read_command_mailbox(vision_command_mailbox_t *out);
 
 /**
- * @brief 强制设置云台工作模式
- * @param mode 目标模式
+ * @brief 发布最新的云台反馈快照
+ * @param snapshot 反馈快照
  */
-void vision_set_mode(gimbal_mode_t mode);
-
-/**
- * @brief 获取最新的视觉数据
- * @retval 视觉数据结构指针
- */
-const vision_data_t* vision_get_data(void);
+void vision_publish_feedback_snapshot(const gimbal_feedback_snapshot_t *snapshot);
 
 #ifdef __cplusplus
 }
