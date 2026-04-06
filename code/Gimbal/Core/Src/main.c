@@ -138,12 +138,22 @@ int main(void)
     Error_Handler();
   }
 
-  // 初始化IMU系统
+
+  for (int i = 0; i < 3; ++i)
+  {
+    // 初始化IMU系统
+    if (module_imu_init())
+    {
+      // IMU初始化失败，可以在这里添加错误处理
+      break;
+    }
+    HAL_Delay(500);
+  }
   if (!module_imu_init())
   {
-    // IMU初始化失败，可以在这里添加错误处理
-    Error_Handler();
+    //Error_Handler();
   }
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
