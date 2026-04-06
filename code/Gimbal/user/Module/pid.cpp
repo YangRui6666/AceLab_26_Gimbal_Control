@@ -11,9 +11,9 @@
 namespace
 {
 GimbalController g_controller;
-gimbal_control_system_t gimbal_system = {};
 gimbal_world_state_t world_state = {};
 
+// 统一的限幅函数，供旧 C 接口和新控制器桥接逻辑复用。
 float limitFloat(float value, float min_value, float max_value)
 {
     if (value > max_value)
@@ -29,70 +29,12 @@ float limitFloat(float value, float min_value, float max_value)
     return value;
 }
 
+// 世界坐标控制使用简单低通滤波，降低陀螺仪噪声对速度环的影响。
 float gyroLowPassFilter(float new_value, float old_value, float alpha)
 {
     return alpha * new_value + (1.0f - alpha) * old_value;
 }
 
-pid_controller_t makePidView(const PidStateSnapshot& snapshot)
-{
-    pid_controller_t view = {};
-    view.kp = snapshot.kp;
-    view.ki = snapshot.ki;
-    view.kd = snapshot.kd;
-    view.integral_max = snapshot.integral_max;
-    view.output_max = snapshot.output_max;
-    view.error[0] = snapshot.error[0];
-    view.error[1] = snapshot.error[1];
-    view.error[2] = snapshot.error[2];
-    view.integral = snapshot.integral;
-    view.derivative = snapshot.derivative;
-    view.output = snapshot.output;
-    view.deadzone = snapshot.deadzone;
-    view.dt = snapshot.dt;
-    view.integral_separation = snapshot.integral_separation;
-    view.separation_threshold = snapshot.separation_threshold;
-    view.update_count = snapshot.update_count;
-    return view;
-}
-
-void syncAxisView(const AxisStateSnapshot& source, gimbal_axis_control_t* target)
-{
-    if (target == nullptr)
-    {
-        return;
-    }
-
-    target->position_loop = makePidView(source.position_loop);
-    target->velocity_loop = makePidView(source.velocity_loop);
-    target->target_position = source.target_position;
-    target->target_velocity = source.target_velocity;
-    target->current_position = source.current_position;
-    target->current_velocity = source.current_velocity;
-    target->current_current = source.current_current;
-    target->current_temp = source.current_temp;
-    target->position_min = source.position_min;
-    target->position_max = source.position_max;
-    target->safety_enable = source.safety_enable;
-    target->motor_online = source.motor_online;
-    target->emergency_stop = source.emergency_stop;
-    target->last_update_time = source.last_update_time;
-    target->output_current = source.output_current;
-}
-
-void syncSystemView()
-{
-    const GimbalStateSnapshot snapshot = g_controller.snapshot();
-    syncAxisView(snapshot.yaw, &gimbal_system.yaw);
-    syncAxisView(snapshot.pitch, &gimbal_system.pitch);
-    gimbal_system.system_init = snapshot.system_init;
-    gimbal_system.global_emergency = snapshot.global_emergency;
-    gimbal_system.control_tick_count = snapshot.control_tick_count;
-    gimbal_system.velocity_loop_counter = snapshot.velocity_loop_counter;
-    gimbal_system.position_loop_counter = snapshot.position_loop_counter;
-    gimbal_system.total_control_cycles = snapshot.total_control_cycles;
-    gimbal_system.safety_trigger_count = snapshot.safety_trigger_count;
-}
 }
 
 bool pid_controller_init(pid_controller_t* pid,
@@ -189,15 +131,7 @@ bool gimbal_control_init(void)
     world_state.gyro_feedback_enable = true;
     world_state.angle_limit_enable = true;
     world_state.imu_data_valid = false;
-
-    syncSystemView();
     return true;
-}
-
-gimbal_control_system_t* gimbal_get_system(void)
-{
-    syncSystemView();
-    return &gimbal_system;
 }
 
 bool gimbal_set_position_target(float yaw_target, float pitch_target)
@@ -208,7 +142,6 @@ bool gimbal_set_position_target(float yaw_target, float pitch_target)
     }
 
     const bool ok = g_controller.setPositionTarget(yaw_target, pitch_target);
-    syncSystemView();
     return ok;
 }
 
@@ -220,6 +153,7 @@ bool gimbal_set_encoder_feedback(const gimbal_axis_feedback_t* yaw_feedback,
         return false;
     }
 
+    // 先将 C 层反馈翻译成 C++ 控制器使用的数据结构。
     AxisFeedback yaw = {};
     yaw.position_deg = yaw_feedback->position_deg;
     yaw.velocity_rpm = yaw_feedback->velocity_rpm;
@@ -239,7 +173,6 @@ bool gimbal_set_encoder_feedback(const gimbal_axis_feedback_t* yaw_feedback,
     pitch.motor_online = pitch_feedback->motor_online;
 
     g_controller.setFeedback(yaw, pitch);
-    syncSystemView();
     return true;
 }
 
@@ -251,7 +184,6 @@ bool gimbal_position_loop_update(void)
     }
 
     const bool ok = g_controller.positionLoopUpdate();
-    syncSystemView();
     return ok;
 }
 
@@ -263,7 +195,6 @@ bool gimbal_velocity_loop_update(void)
     }
 
     const bool ok = g_controller.velocityLoopUpdate();
-    syncSystemView();
     return ok;
 }
 
@@ -275,7 +206,6 @@ bool gimbal_safety_check(void)
     }
 
     const bool ok = g_controller.safetyCheck();
-    syncSystemView();
     return ok;
 }
 
@@ -287,32 +217,31 @@ void gimbal_emergency_stop(void)
     }
 
     g_controller.emergencyStop();
-    syncSystemView();
 }
 
 void gimbal_get_status(float* yaw_pos, float* pitch_pos,
                        float* yaw_vel, float* pitch_vel)
 {
-    syncSystemView();
+    const GimbalStateSnapshot snapshot = g_controller.snapshot();
 
     if (yaw_pos != nullptr)
     {
-        *yaw_pos = gimbal_system.yaw.current_position;
+        *yaw_pos = snapshot.yaw.current_position;
     }
 
     if (pitch_pos != nullptr)
     {
-        *pitch_pos = gimbal_system.pitch.current_position;
+        *pitch_pos = snapshot.pitch.current_position;
     }
 
     if (yaw_vel != nullptr)
     {
-        *yaw_vel = gimbal_system.yaw.current_velocity;
+        *yaw_vel = snapshot.yaw.current_velocity;
     }
 
     if (pitch_vel != nullptr)
     {
-        *pitch_vel = gimbal_system.pitch.current_velocity;
+        *pitch_vel = snapshot.pitch.current_velocity;
     }
 }
 
@@ -324,22 +253,21 @@ bool gimbal_control_task(void)
     }
 
     const bool ok = g_controller.controlStep();
-    syncSystemView();
     return ok;
 }
 
 void gimbal_get_output_currents(int16_t* yaw_current, int16_t* pitch_current)
 {
-    syncSystemView();
+    const GimbalStateSnapshot snapshot = g_controller.snapshot();
 
     if (yaw_current != nullptr)
     {
-        *yaw_current = gimbal_system.yaw.output_current;
+        *yaw_current = snapshot.yaw.output_current;
     }
 
     if (pitch_current != nullptr)
     {
-        *pitch_current = gimbal_system.pitch.output_current;
+        *pitch_current = snapshot.pitch.output_current;
     }
 }
 
@@ -351,6 +279,7 @@ bool gimbal_world_coordinate_control(float world_yaw, float world_pitch,
         return false;
     }
 
+    // 先缓存当前测量值，再基于陀螺仪做滤波。
     world_state.world_yaw_current = world_yaw;
     world_state.world_pitch_current = world_pitch;
     world_state.gyro_yaw_rate = gyroLowPassFilter(gyro_yaw_rate,
@@ -360,19 +289,21 @@ bool gimbal_world_coordinate_control(float world_yaw, float world_pitch,
                                                     world_state.gyro_pitch_rate,
                                                     GYRO_LOWPASS_FILTER_ALPHA);
 
+    // 安全限位优先，越界直接拒绝这次世界坐标控制。
     if (world_state.angle_limit_enable &&
         !gimbal_check_angle_limits(world_state.world_yaw_target, world_state.world_pitch_target))
     {
         return false;
     }
 
+    // 轴级安全检查失败时，直接进入全局紧急停止。
     if (!g_controller.yaw().safetyCheck() || !g_controller.pitch().safetyCheck())
     {
         g_controller.emergencyStop();
-        syncSystemView();
         return false;
     }
 
+    // 位置环输出目标角速度，速度环再输出最终电流。
     float target_yaw_rate = g_controller.yaw().calculatePositionOutput(world_state.world_yaw_target, world_yaw);
     float target_pitch_rate = g_controller.pitch().calculatePositionOutput(world_state.world_pitch_target, world_pitch);
 
@@ -392,8 +323,6 @@ bool gimbal_world_coordinate_control(float world_yaw, float world_pitch,
     world_state.imu_data_valid = true;
     world_state.last_update_tick = static_cast<uint32_t>(xTaskGetTickCount());
     ++world_state.world_control_cycles;
-
-    syncSystemView();
     return true;
 }
 
@@ -425,9 +354,9 @@ bool gimbal_set_world_control_enable(bool enable)
     world_state.world_control_enable = enable;
     if (enable)
     {
+        // 模式切回世界坐标后，复位两轴 PID，避免旧误差残留。
         g_controller.yaw().reset();
         g_controller.pitch().reset();
-        syncSystemView();
     }
     return true;
 }

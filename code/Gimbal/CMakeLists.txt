@@ -49,8 +49,9 @@ add_executable(${CMAKE_PROJECT_NAME}
         user/Module/pid.h
         user/Module/imu_fusion.h
         user/Library/Kalman.c
-        user/Debug/debug.c
-        user/Debug/debug.h
+        user/Debug/ddebug.c
+        user/Debug/ddebug.h
+        user/Apps/beep.cpp
         user/Module/pid.cpp
         user/Module/pid_controller.cpp
         user/Module/gimbal_controller.cpp

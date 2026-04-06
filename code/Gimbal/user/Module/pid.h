@@ -19,6 +19,10 @@ extern "C" {
 /**
  * @brief 增量式PID控制器结构体
  */
+/**
+ * @brief 基础 PID 控制器状态
+ * @details 保存 PID 参数、误差历史和输出结果。
+ */
 typedef struct
 {
     // PID参数
@@ -46,65 +50,13 @@ typedef struct
     uint32_t update_count;  // 更新次数计数
 } pid_controller_t;
 
-// ================== 单轴云台控制结构 ==================
-/**
- * @brief 单轴云台控制结构(位置环+速度环)
- */
-typedef struct
-{
-    pid_controller_t position_loop; // 位置环PID
-    pid_controller_t velocity_loop; // 速度环PID
-
-    // 目标值
-    float target_position;          // 目标位置(度)
-    float target_velocity;          // 目标速度(rpm) - 通常由位置环输出
-
-    // 反馈值
-    float current_position;         // 当前位置(度)
-    float current_velocity;         // 当前速度(rpm)
-    float current_current;          // 当前电流(mA)
-    int8_t current_temp;            // 当前温度(°C)
-
-    // 安全限制
-    float position_min;             // 位置最小值(度)
-    float position_max;             // 位置最大值(度)
-    bool safety_enable;             // 安全保护使能
-
-    // 状态标志
-    bool motor_online;              // 电机在线状态
-    bool emergency_stop;            // 紧急停止标志
-    uint32_t last_update_time;      // 最后更新时间(tick)
-
-    // 最终输出
-    int16_t output_current;         // 输出电流指令(mA)
-} gimbal_axis_control_t;
-
-// ================== 完整云台系统结构 ==================
-/**
- * @brief 完整云台控制系统
- */
-typedef struct
-{
-    gimbal_axis_control_t yaw;      // Yaw轴控制
-    gimbal_axis_control_t pitch;    // Pitch轴控制
-
-    // 系统状态
-    bool system_init;               // 系统初始化标志
-    bool global_emergency;          // 全局紧急停止
-    uint32_t control_tick_count;    // 控制tick计数器
-
-    // 频率控制
-    uint8_t velocity_loop_counter;  // 速度环计数器
-    uint8_t position_loop_counter;  // 位置环计数器
-
-    // 系统统计
-    uint32_t total_control_cycles;  // 总控制周期数
-    uint32_t safety_trigger_count;  // 安全保护触发次数
-} gimbal_control_system_t;
-
 // ================== 世界坐标系控制结构 ==================
 /**
  * @brief 世界坐标系云台控制状态
+ */
+/**
+ * @brief 世界坐标系云台控制状态
+ * @details 保存世界坐标系目标值、当前测量值、IMU 反馈和控制使能状态。
  */
 typedef struct {
     // 目标值(世界坐标系)
@@ -132,8 +84,13 @@ typedef struct {
     uint32_t world_control_cycles; // 世界坐标控制周期计数
 } gimbal_world_state_t;
 
+/**
+ * @brief 统一后的电机反馈视图
+ * @details 用于 C 控制接口和 C++ 控制层之间传递单轴电机状态。
+ */
 typedef struct
 {
+    // 统一后的电机反馈视图，供 C 控制接口和 C++ 控制层之间传递。
     float position_deg;            // 当前位置(度)
     float velocity_rpm;            // 当前速度(rpm)
     float current_ma;              // 原始电流(mA)
@@ -182,12 +139,6 @@ void pid_reset(pid_controller_t* pid);
 bool gimbal_control_init(void);
 
 /**
- * @brief 获取云台控制系统指针
- * @return 云台控制系统指针
- */
-gimbal_control_system_t* gimbal_get_system(void);
-
-/**
  * @brief 设置云台目标位置
  * @param yaw_target Yaw轴目标位置(度)
  * @param pitch_target Pitch轴目标位置(度)
@@ -228,7 +179,7 @@ bool gimbal_safety_check(void);
 void gimbal_emergency_stop(void);
 
 /**
- * @brief 获取云台状态信息(用于调试)
+ * @brief 获取云台状态信息
  * @param yaw_pos 返回Yaw位置
  * @param pitch_pos 返回Pitch位置
  * @param yaw_vel 返回Yaw速度

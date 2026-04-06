@@ -16,6 +16,7 @@
 
 static gimbal_axis_feedback_t make_axis_feedback(const devices_gm6020_feedback_t* device_feedback)
 {
+    // 任务层只处理统一后的反馈视图，不直接依赖底层设备快照。
     gimbal_axis_feedback_t axis_feedback = {0};
 
     if (device_feedback == NULL)
@@ -92,6 +93,7 @@ void ControlStartTask(void *argument)
         bool pitch_feedback_ok = devices_gimbal_get_pitch_feedback(&pitch_feedback);
         if (yaw_feedback_ok && pitch_feedback_ok)
         {
+            // 将设备层反馈转换成控制层输入。
             gimbal_axis_feedback_t yaw_axis_feedback = make_axis_feedback(&yaw_feedback);
             gimbal_axis_feedback_t pitch_axis_feedback = make_axis_feedback(&pitch_feedback);
             (void)gimbal_set_encoder_feedback(&yaw_axis_feedback, &pitch_axis_feedback);
@@ -175,6 +177,7 @@ void ControlStartTask(void *argument)
 
             int16_t yaw_current = 0;
             int16_t pitch_current = 0;
+            // 控制器输出最终电流后，由设备层统一发送。
             gimbal_get_output_currents(&yaw_current, &pitch_current);
             devices_gimbal_set_currents(yaw_current, pitch_current);
             (void)devices_gimbal_send();

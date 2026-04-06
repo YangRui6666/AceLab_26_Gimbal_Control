@@ -4,6 +4,7 @@
 
 namespace
 {
+// 限幅函数和控制器内部实现共用，避免重复依赖外部工具代码。
 float limitFloat(float value, float min_value, float max_value)
 {
     if (value > max_value)
@@ -20,11 +21,20 @@ float limitFloat(float value, float min_value, float max_value)
 }
 }
 
+/**
+ * @brief 构造 PID 控制器并立即配置参数
+ * @param config PID 参数集
+ */
 PidController::PidController(const PidConfig& config)
 {
     (void)configure(config);
 }
 
+/**
+ * @brief 配置 PID 参数并重置内部状态
+ * @param config PID 参数集
+ * @return true=配置成功，false=控制周期非法
+ */
 bool PidController::configure(const PidConfig& config)
 {
     if (config.dt <= 0.0f)
@@ -39,6 +49,7 @@ bool PidController::configure(const PidConfig& config)
 
 float PidController::update(float target, float feedback)
 {
+    // 误差历史用于微分项和调试快照。
     error_[2] = error_[1];
     error_[1] = error_[0];
     error_[0] = target - feedback;
@@ -50,6 +61,7 @@ float PidController::update(float target, float feedback)
 
     const float proportional = config_.kp * error_[0];
 
+    // 积分分离用于大误差阶段抑制积分累积。
     if (!config_.integral_separation ||
         std::fabs(error_[0]) < config_.separation_threshold)
     {
@@ -58,6 +70,7 @@ float PidController::update(float target, float feedback)
     }
     const float integral = config_.ki * integral_;
 
+    // 微分项采用一阶滤波，降低噪声放大。
     if (update_count_ >= 2U)
     {
         const float raw_derivative = (error_[0] - error_[1]) / config_.dt;
@@ -73,6 +86,9 @@ float PidController::update(float target, float feedback)
     return output_;
 }
 
+/**
+ * @brief 重置 PID 内部状态
+ */
 void PidController::reset()
 {
     error_[0] = 0.0f;
@@ -84,11 +100,19 @@ void PidController::reset()
     update_count_ = 0U;
 }
 
+/**
+ * @brief 获取当前 PID 配置
+ * @return 当前 PID 参数集
+ */
 const PidConfig& PidController::config() const
 {
     return config_;
 }
 
+/**
+ * @brief 导出 PID 状态快照
+ * @return 当前 PID 状态副本
+ */
 PidStateSnapshot PidController::snapshot() const
 {
     PidStateSnapshot snapshot;

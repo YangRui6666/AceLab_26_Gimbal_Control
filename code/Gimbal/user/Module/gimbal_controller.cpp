@@ -7,6 +7,7 @@ namespace
 {
 constexpr float kMaToControlScale = 16384.0f / 20000.0f;
 
+// 通用限幅，避免控制量和目标值越界。
 float limitFloat(float value, float min_value, float max_value)
 {
     if (value > max_value)
@@ -22,6 +23,7 @@ float limitFloat(float value, float min_value, float max_value)
     return value;
 }
 
+// 根据配置生成 PID 参数，减少位置环和速度环的重复初始化代码。
 PidConfig makePositionPidConfig(float kp, float ki, float kd,
                                 float integral_max, float output_max,
                                 float dt, float deadzone)
@@ -40,6 +42,7 @@ PidConfig makePositionPidConfig(float kp, float ki, float kd,
     return config;
 }
 
+// yaw 轴使用独立参数，便于和 pitch 轴分开调试。
 AxisConfig makeYawAxisConfig()
 {
     AxisConfig config;
@@ -63,6 +66,7 @@ AxisConfig makeYawAxisConfig()
     return config;
 }
 
+// pitch 轴通常负载和约束不同，因此单独配置。
 AxisConfig makePitchAxisConfig()
 {
     AxisConfig config;
@@ -86,6 +90,7 @@ AxisConfig makePitchAxisConfig()
     return config;
 }
 
+// 将电流单位从 mA 转换成电机控制帧需要的量纲。
 int16_t maToControlValue(float current_ma)
 {
     const float limited = limitFloat(current_ma, -20000.0f, 20000.0f);
@@ -93,6 +98,10 @@ int16_t maToControlValue(float current_ma)
 }
 }
 
+/**
+ * @brief 构造单轴控制器并绑定初始配置
+ * @param config 单轴控制参数
+ */
 GimbalAxisController::GimbalAxisController(const AxisConfig& config)
     : config_(config),
       position_loop_(config.position_pid),
@@ -100,18 +109,32 @@ GimbalAxisController::GimbalAxisController(const AxisConfig& config)
 {
 }
 
+/**
+ * @brief 写入单轴反馈数据
+ * @param feedback 单轴反馈数据
+ */
 void GimbalAxisController::setFeedback(const AxisFeedback& feedback)
 {
+    // 由任务层统一写入反馈，控制层只读取缓存值。
     feedback_ = feedback;
 }
 
+/**
+ * @brief 设置单轴目标位置并执行限幅
+ * @param target_position 目标位置(度)
+ */
 void GimbalAxisController::setPositionTarget(float target_position)
 {
     target_position_ = limitFloat(target_position, config_.position_min, config_.position_max);
 }
 
+/**
+ * @brief 检查单轴是否满足安全条件
+ * @return true=安全，false=触发保护
+ */
 bool GimbalAxisController::safetyCheck()
 {
+    // 在线、温度和电流异常都会直接进入保护。
     if (!feedback_.motor_online)
     {
         emergency_stop_ = true;
@@ -139,6 +162,10 @@ bool GimbalAxisController::safetyCheck()
     return true;
 }
 
+/**
+ * @brief 更新单轴位置环并生成目标速度
+ * @return true=更新成功，false=处于急停状态
+ */
 bool GimbalAxisController::updatePositionLoop()
 {
     if (emergency_stop_)
@@ -150,6 +177,10 @@ bool GimbalAxisController::updatePositionLoop()
     return true;
 }
 
+/**
+ * @brief 更新单轴速度环并换算为控制电流
+ * @return true=更新成功，false=处于急停状态
+ */
 bool GimbalAxisController::updateVelocityLoop()
 {
     if (emergency_stop_)
@@ -162,24 +193,44 @@ bool GimbalAxisController::updateVelocityLoop()
     return true;
 }
 
+/**
+ * @brief 计算位置环 PID 输出
+ * @param target_position 目标位置(度)
+ * @param feedback_position 反馈位置(度)
+ * @return 位置环输出的目标速度
+ */
 float GimbalAxisController::calculatePositionOutput(float target_position, float feedback_position)
 {
     target_velocity_ = position_loop_.update(target_position, feedback_position);
     return target_velocity_;
 }
 
+/**
+ * @brief 计算速度环 PID 输出
+ * @param target_velocity 目标速度
+ * @param feedback_velocity 反馈速度
+ * @return 速度环输出电流
+ */
 float GimbalAxisController::calculateVelocityOutput(float target_velocity, float feedback_velocity)
 {
     return velocity_loop_.update(target_velocity, feedback_velocity);
 }
 
+/**
+ * @brief 直接设置输出电流
+ * @param output_current 电流指令
+ */
 void GimbalAxisController::setOutputCurrent(int16_t output_current)
 {
     output_current_ = output_current;
 }
 
+/**
+ * @brief 触发单轴紧急停止
+ */
 void GimbalAxisController::emergencyStop()
 {
+    // 紧急停止时清空控制输出并复位环路状态。
     emergency_stop_ = true;
     target_velocity_ = 0.0f;
     output_current_ = 0;
@@ -187,6 +238,9 @@ void GimbalAxisController::emergencyStop()
     velocity_loop_.reset();
 }
 
+/**
+ * @brief 重置单轴控制状态
+ */
 void GimbalAxisController::reset()
 {
     emergency_stop_ = false;
@@ -196,36 +250,13 @@ void GimbalAxisController::reset()
     velocity_loop_.reset();
 }
 
-bool GimbalAxisController::emergencyStopActive() const
-{
-    return emergency_stop_;
-}
-
-int16_t GimbalAxisController::outputCurrent() const
-{
-    return output_current_;
-}
-
-float GimbalAxisController::targetPosition() const
-{
-    return target_position_;
-}
-
-float GimbalAxisController::targetVelocity() const
-{
-    return target_velocity_;
-}
-
-const AxisFeedback& GimbalAxisController::feedback() const
-{
-    return feedback_;
-}
-
+/**
+ * @brief 导出单轴状态快照
+ * @return 单轴状态副本
+ */
 AxisStateSnapshot GimbalAxisController::snapshot() const
 {
     AxisStateSnapshot snapshot;
-    snapshot.position_loop = position_loop_.snapshot();
-    snapshot.velocity_loop = velocity_loop_.snapshot();
     snapshot.target_position = target_position_;
     snapshot.target_velocity = target_velocity_;
     snapshot.current_position = feedback_.position_deg;
@@ -257,32 +288,47 @@ float GimbalAxisController::limitFloat(float value, float min_value, float max_v
     return value;
 }
 
+/**
+ * @brief 构造云台总控制器并创建双轴实例
+ */
 GimbalController::GimbalController()
     : yaw_axis_(makeYawAxisConfig()),
       pitch_axis_(makePitchAxisConfig())
 {
 }
 
+/**
+ * @brief 初始化双轴控制器状态
+ * @return true=初始化成功
+ */
 bool GimbalController::init()
 {
     system_init_ = true;
     global_emergency_ = false;
-    control_tick_count_ = 0U;
     velocity_loop_counter_ = 0U;
     position_loop_counter_ = 0U;
-    total_control_cycles_ = 0U;
-    safety_trigger_count_ = 0U;
     yaw_axis_.reset();
     pitch_axis_.reset();
     return true;
 }
 
+/**
+ * @brief 更新双轴反馈数据
+ * @param yaw_feedback Yaw 轴反馈
+ * @param pitch_feedback Pitch 轴反馈
+ */
 void GimbalController::setFeedback(const AxisFeedback& yaw_feedback, const AxisFeedback& pitch_feedback)
 {
     yaw_axis_.setFeedback(yaw_feedback);
     pitch_axis_.setFeedback(pitch_feedback);
 }
 
+/**
+ * @brief 设置双轴目标位置
+ * @param yaw_target Yaw 目标角度(度)
+ * @param pitch_target Pitch 目标角度(度)
+ * @return true=设置成功，false=未初始化
+ */
 bool GimbalController::setPositionTarget(float yaw_target, float pitch_target)
 {
     if (!system_init_)
@@ -295,6 +341,10 @@ bool GimbalController::setPositionTarget(float yaw_target, float pitch_target)
     return true;
 }
 
+/**
+ * @brief 更新双轴位置环
+ * @return true=更新成功，false=未初始化或安全异常
+ */
 bool GimbalController::positionLoopUpdate()
 {
     if (!system_init_)
@@ -311,6 +361,10 @@ bool GimbalController::positionLoopUpdate()
     return yaw_axis_.updatePositionLoop() && pitch_axis_.updatePositionLoop();
 }
 
+/**
+ * @brief 更新双轴速度环
+ * @return true=更新成功，false=未初始化或全局急停
+ */
 bool GimbalController::velocityLoopUpdate()
 {
     if (!system_init_ || global_emergency_)
@@ -321,6 +375,10 @@ bool GimbalController::velocityLoopUpdate()
     return yaw_axis_.updateVelocityLoop() && pitch_axis_.updateVelocityLoop();
 }
 
+/**
+ * @brief 检查全局安全状态
+ * @return true=系统安全，false=存在异常
+ */
 bool GimbalController::safetyCheck()
 {
     if (!system_init_)
@@ -330,20 +388,24 @@ bool GimbalController::safetyCheck()
 
     if (global_emergency_)
     {
-        ++safety_trigger_count_;
         return false;
     }
 
-    if (yaw_axis_.emergencyStopActive() || pitch_axis_.emergencyStopActive())
+    const GimbalStateSnapshot state = snapshot();
+    if (state.yaw.emergency_stop || state.pitch.emergency_stop)
     {
         global_emergency_ = true;
-        ++safety_trigger_count_;
         return false;
     }
 
     return true;
 }
 
+/**
+ * @brief 执行一次完整控制步
+ * @details 按速度环、位置环和安全检查的顺序执行分频控制。
+ * @return true=控制成功，false=未初始化或发生异常
+ */
 bool GimbalController::controlStep()
 {
     if (!system_init_)
@@ -351,9 +413,7 @@ bool GimbalController::controlStep()
         return false;
     }
 
-    ++control_tick_count_;
-    ++total_control_cycles_;
-
+    // 速度环频率更高，先执行速度环。
     ++velocity_loop_counter_;
     if (velocity_loop_counter_ >= VELOCITY_LOOP_DIV)
     {
@@ -365,6 +425,7 @@ bool GimbalController::controlStep()
         }
     }
 
+    // 位置环按更低频率执行，输出目标速度。
     ++position_loop_counter_;
     if (position_loop_counter_ >= POSITION_LOOP_DIV)
     {
@@ -384,6 +445,9 @@ bool GimbalController::controlStep()
     return true;
 }
 
+/**
+ * @brief 触发全局紧急停止
+ */
 void GimbalController::emergencyStop()
 {
     global_emergency_ = true;
@@ -421,6 +485,10 @@ const GimbalAxisController& GimbalController::pitch() const
     return pitch_axis_;
 }
 
+/**
+ * @brief 导出云台总状态快照
+ * @return 云台总状态副本
+ */
 GimbalStateSnapshot GimbalController::snapshot() const
 {
     GimbalStateSnapshot snapshot;
@@ -428,10 +496,5 @@ GimbalStateSnapshot GimbalController::snapshot() const
     snapshot.pitch = pitch_axis_.snapshot();
     snapshot.system_init = system_init_;
     snapshot.global_emergency = global_emergency_;
-    snapshot.control_tick_count = control_tick_count_;
-    snapshot.velocity_loop_counter = velocity_loop_counter_;
-    snapshot.position_loop_counter = position_loop_counter_;
-    snapshot.total_control_cycles = total_control_cycles_;
-    snapshot.safety_trigger_count = safety_trigger_count_;
     return snapshot;
 }
