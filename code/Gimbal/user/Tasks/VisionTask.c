@@ -15,6 +15,7 @@
 
 #include "../Bsp/Inc/bsp_usb.h"
 #include "../Config/vision_config.h"
+#include "ddebug.h"
 
 // 外部信号量句柄
 extern osSemaphoreId_t VisionBinarySemHandle;
@@ -772,12 +773,14 @@ void StartVisionTask03(void *argument)
     (void)argument;
 
     bsp_usb_init();
+    debug_init();
     bsp_usb_clear_rx_buffer();
     vision_parser_reset(&parser);
 
     protocol_state.last_valid_packet_tick = xTaskGetTickCount();
     protocol_state.last_status_send_tick = protocol_state.last_valid_packet_tick;
     vision_publish_command_mailbox_internal(&protocol_state);
+    (void)DBG_INFO("Vision", "vision task started");
 
     for (;;)
     {

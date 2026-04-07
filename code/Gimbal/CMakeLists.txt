@@ -49,7 +49,7 @@ add_executable(${CMAKE_PROJECT_NAME}
         user/Module/pid.h
         user/Module/imu_fusion.h
         user/Library/Kalman.c
-        user/Debug/ddebug.c
+        user/Debug/ddebug.cpp
         user/Debug/ddebug.h
         user/Apps/beep.cpp
         user/Module/pid.cpp
@@ -79,6 +79,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/user/Module
     ${CMAKE_CURRENT_SOURCE_DIR}/user
     ${CMAKE_CURRENT_SOURCE_DIR}/user/Bsp/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/user/Debug
 )
 
 # Add project symbols (macros)
