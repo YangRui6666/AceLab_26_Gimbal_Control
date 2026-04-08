@@ -4,165 +4,40 @@
 #include <string.h>
 
 #include "LED.h"
-#include "arm_math.h"
-#include "main.h"
-#include "usbd_cdc_if.h"
 
-#define USB_APP_SOF_0                       0xAAU
-#define USB_APP_SOF_1                       0x55U
-#define USB_APP_EOF_0                       0x5AU
-#define USB_APP_EOF_1                       0xA5U
-#define USB_APP_FRAME_OVERHEAD              8U
-#define USB_APP_MAX_DATA_LEN                16U
-#define USB_APP_MAX_FRAME_LEN               (USB_APP_FRAME_OVERHEAD + USB_APP_MAX_DATA_LEN)
-#define USB_APP_RX_BUFFER_SIZE              256U
-#define USB_APP_BOOT_TIMEOUT_MS             15000U
-#define USB_APP_HEARTBEAT_TIMEOUT_MS        1000U
-#define USB_APP_SEARCH_TIMEOUT_MS           500U
-#define USB_APP_AUTO_AIM_TIMEOUT_MS         200U
-#define USB_APP_FEEDBACK_PERIOD_MS          10U
-#define USB_APP_HANDSHAKE_REQ_LEN           0U
-#define USB_APP_ENABLE_STREAM_LEN           0U
-#define USB_APP_SEARCH_LEN                  0U
-#define USB_APP_AUTO_AIM_LEN                10U
-#define USB_APP_HEARTBEAT_LEN               5U
-#define USB_APP_LOCK_LEN                    0U
-#define USB_APP_UNLOCK_LEN                  0U
-#define USB_APP_BOOT_LEN                    4U
-#define USB_APP_HANDSHAKE_ACK_LEN           4U
-#define USB_APP_FEEDBACK_LEN                12U
-#define USB_APP_LOCK_NOTIFICATION_LEN       5U
-#define USB_APP_WAVEFORM_PERIOD_MS          4000.0f
-#define USB_APP_YAW_AMPLITUDE_DEG_X1000     30000.0f
-#define USB_APP_PITCH_AMPLITUDE_DEG_X1000   15000.0f
-#define USB_APP_PI                          3.14159265358979323846f
+#define USB_APP_SOF_0               0xAAU
+#define USB_APP_SOF_1               0x55U
+#define USB_APP_EOF_0               0x5AU
+#define USB_APP_EOF_1               0xA5U
+#define USB_APP_FRAME_OVERHEAD      8U
+#define USB_APP_MAX_DATA_LEN        16U
+#define USB_APP_RX_BUFFER_SIZE      256U
+#define USB_APP_LED_ON_TIME_MS      500U
+#define USB_APP_SEARCH_LEN          4U
+#define USB_APP_AUTO_AIM_LEN        10U
 
 typedef struct
 {
     uint8_t rx_buffer[USB_APP_RX_BUFFER_SIZE];
-    uint8_t tx_buffer[USB_APP_MAX_FRAME_LEN];
     uint16_t rx_length;
-    uint32_t start_ms;
-    uint32_t waveform_start_ms;
-    uint32_t last_feedback_ms;
-    uint32_t last_heartbeat_rx_ms;
-    uint32_t last_mode_packet_ms;
-    uint32_t pending_lock_timestamp_ms;
-    GimbalMode_t mode;
-    UsbAimControl_t last_aim_command;
-    UsbHeartbeat_t last_heartbeat;
-    UsbLockReason_t pending_lock_reason;
-    uint8_t boot_message_sent;
-    uint8_t handshake_reply_pending;
-    uint8_t lock_notification_pending;
-    uint8_t stream_enabled;
-    uint8_t handshake_completed;
-    uint8_t boot_timeout_armed;
-    uint8_t heartbeat_armed;
 } UsbAppContext_t;
 
 static UsbAppContext_t g_usb;
 
-static void USB_SetLedPattern(void);
-static void USB_SetMode(GimbalMode_t mode, uint32_t now_ms);
-static void USB_EnterLock(UsbLockReason_t reason, uint32_t now_ms);
 static uint16_t USB_Crc16(const uint8_t *data, uint16_t length);
-static void USB_WriteU16Le(uint8_t *dst, uint16_t value);
-static void USB_WriteU32Le(uint8_t *dst, uint32_t value);
-static int16_t USB_ReadI16Le(const uint8_t *src);
 static uint16_t USB_ReadU16Le(const uint8_t *src);
-static uint32_t USB_ReadU32Le(const uint8_t *src);
-static uint8_t USB_SendFrame(uint8_t cmd, const uint8_t *data, uint8_t length);
-static uint8_t USB_SendBootMessage(uint32_t now_ms);
-static uint8_t USB_SendHandshakeAck(uint32_t now_ms);
-static uint8_t USB_SendFeedback(uint32_t now_ms);
-static uint8_t USB_SendLockNotification(void);
-static void USB_GetFeedbackAngles(uint32_t now_ms, int16_t *yaw, int16_t *pitch, int16_t *roll);
-static void USB_HandleFrame(uint8_t cmd, const uint8_t *data, uint8_t length, uint32_t now_ms);
+static uint8_t USB_IsSupportedCommand(uint8_t cmd, uint8_t length);
+static void USB_HandleFrame(uint8_t cmd, uint8_t length, uint32_t now_ms);
 static void USB_ProcessRxBuffer(uint32_t now_ms);
 
 void USB_AppInit(void)
 {
     memset(&g_usb, 0, sizeof(g_usb));
-    g_usb.start_ms = HAL_GetTick();
-    g_usb.waveform_start_ms = g_usb.start_ms;
-    g_usb.last_feedback_ms = g_usb.start_ms;
-    g_usb.mode = GIMBAL_MODE_STABLE;
-    g_usb.boot_timeout_armed = 1U;
-    USB_SetLedPattern();
 }
 
 void USB_AppTask(uint32_t now_ms)
 {
-    if (g_usb.lock_notification_pending != 0U)
-    {
-        if (USB_SendLockNotification() != 0U)
-        {
-            g_usb.lock_notification_pending = 0U;
-        }
-    }
-
-    if (g_usb.handshake_reply_pending != 0U)
-    {
-        if (USB_SendHandshakeAck(now_ms) != 0U)
-        {
-            g_usb.handshake_reply_pending = 0U;
-            g_usb.handshake_completed = 1U;
-            g_usb.boot_timeout_armed = 0U;
-            g_usb.heartbeat_armed = 1U;
-            g_usb.stream_enabled = 0U;
-            g_usb.last_heartbeat_rx_ms = now_ms;
-            g_usb.last_mode_packet_ms = now_ms;
-            USB_SetMode(GIMBAL_MODE_STABLE, now_ms);
-        }
-        return;
-    }
-
-    if ((g_usb.boot_message_sent == 0U) &&
-        (g_usb.mode != GIMBAL_MODE_LOCK_PROTECT) &&
-        (g_usb.mode != GIMBAL_MODE_DISABLE))
-    {
-        if (USB_SendBootMessage(now_ms) != 0U)
-        {
-            g_usb.boot_message_sent = 1U;
-        }
-    }
-
-    if ((g_usb.mode != GIMBAL_MODE_LOCK_PROTECT) && (g_usb.mode != GIMBAL_MODE_DISABLE))
-    {
-        if ((g_usb.boot_timeout_armed != 0U) && ((now_ms - g_usb.start_ms) >= USB_APP_BOOT_TIMEOUT_MS))
-        {
-            USB_EnterLock(LOCK_REASON_BOOT_TIMEOUT, now_ms);
-        }
-
-        if ((g_usb.heartbeat_armed != 0U) &&
-            ((now_ms - g_usb.last_heartbeat_rx_ms) > USB_APP_HEARTBEAT_TIMEOUT_MS))
-        {
-            USB_EnterLock(LOCK_REASON_HEARTBEAT_TIMEOUT, now_ms);
-        }
-
-        if ((g_usb.mode == GIMBAL_MODE_SEARCH) &&
-            ((now_ms - g_usb.last_mode_packet_ms) > USB_APP_SEARCH_TIMEOUT_MS))
-        {
-            USB_SetMode(GIMBAL_MODE_STABLE, now_ms);
-        }
-        else if ((g_usb.mode == GIMBAL_MODE_AUTO_AIM) &&
-                 ((now_ms - g_usb.last_mode_packet_ms) > USB_APP_AUTO_AIM_TIMEOUT_MS))
-        {
-            USB_SetMode(GIMBAL_MODE_SEARCH, now_ms);
-        }
-    }
-
-    if ((g_usb.stream_enabled != 0U) &&
-        (g_usb.mode != GIMBAL_MODE_LOCK_PROTECT) &&
-        (g_usb.mode != GIMBAL_MODE_DISABLE) &&
-        ((now_ms - g_usb.last_feedback_ms) >= USB_APP_FEEDBACK_PERIOD_MS))
-    {
-        if (USB_SendFeedback(now_ms) != 0U)
-        {
-            g_usb.last_feedback_ms = now_ms;
-        }
-    }
+    (void)now_ms;
 }
 
 void USB_AppOnRx(const uint8_t *buf, uint16_t len, uint32_t now_ms)
@@ -192,53 +67,6 @@ void USB_AppOnRx(const uint8_t *buf, uint16_t len, uint32_t now_ms)
     USB_ProcessRxBuffer(now_ms);
 }
 
-static void USB_SetLedPattern(void)
-{
-    LedPattern_t pattern = LED_PATTERN_OFF;
-
-    if (g_usb.mode == GIMBAL_MODE_LOCK_PROTECT)
-    {
-        pattern = LED_PATTERN_LOCKED;
-    }
-    else if (g_usb.stream_enabled != 0U)
-    {
-        pattern = LED_PATTERN_USB_ACTIVE;
-    }
-    else
-    {
-        pattern = LED_PATTERN_WAIT_CONNECT;
-    }
-
-    LED_SetPattern(pattern);
-}
-
-static void USB_SetMode(GimbalMode_t mode, uint32_t now_ms)
-{
-    if ((mode == GIMBAL_MODE_SEARCH) && (g_usb.mode != GIMBAL_MODE_SEARCH))
-    {
-        g_usb.waveform_start_ms = now_ms;
-    }
-
-    g_usb.mode = mode;
-    USB_SetLedPattern();
-}
-
-static void USB_EnterLock(UsbLockReason_t reason, uint32_t now_ms)
-{
-    if (g_usb.mode == GIMBAL_MODE_LOCK_PROTECT)
-    {
-        return;
-    }
-
-    g_usb.pending_lock_timestamp_ms = now_ms;
-    g_usb.pending_lock_reason = reason;
-    g_usb.lock_notification_pending = 1U;
-    g_usb.handshake_reply_pending = 0U;
-    g_usb.boot_timeout_armed = 0U;
-    g_usb.heartbeat_armed = 0U;
-    USB_SetMode(GIMBAL_MODE_LOCK_PROTECT, now_ms);
-}
-
 static uint16_t USB_Crc16(const uint8_t *data, uint16_t length)
 {
     uint16_t crc = 0xFFFFU;
@@ -264,227 +92,36 @@ static uint16_t USB_Crc16(const uint8_t *data, uint16_t length)
     return crc;
 }
 
-static void USB_WriteU16Le(uint8_t *dst, uint16_t value)
-{
-    dst[0] = (uint8_t)(value & 0xFFU);
-    dst[1] = (uint8_t)((value >> 8U) & 0xFFU);
-}
-
-static void USB_WriteU32Le(uint8_t *dst, uint32_t value)
-{
-    dst[0] = (uint8_t)(value & 0xFFU);
-    dst[1] = (uint8_t)((value >> 8U) & 0xFFU);
-    dst[2] = (uint8_t)((value >> 16U) & 0xFFU);
-    dst[3] = (uint8_t)((value >> 24U) & 0xFFU);
-}
-
-static int16_t USB_ReadI16Le(const uint8_t *src)
-{
-    return (int16_t)USB_ReadU16Le(src);
-}
-
 static uint16_t USB_ReadU16Le(const uint8_t *src)
 {
     return (uint16_t)((uint16_t)src[0] | ((uint16_t)src[1] << 8U));
 }
 
-static uint32_t USB_ReadU32Le(const uint8_t *src)
+static uint8_t USB_IsSupportedCommand(uint8_t cmd, uint8_t length)
 {
-    return (uint32_t)src[0] |
-           ((uint32_t)src[1] << 8U) |
-           ((uint32_t)src[2] << 16U) |
-           ((uint32_t)src[3] << 24U);
-}
-
-static uint8_t USB_SendFrame(uint8_t cmd, const uint8_t *data, uint8_t length)
-{
-    uint16_t crc;
-    uint16_t frame_len;
-
-    if (length > USB_APP_MAX_DATA_LEN)
-    {
-        return 0U;
-    }
-
-    g_usb.tx_buffer[0] = USB_APP_SOF_0;
-    g_usb.tx_buffer[1] = USB_APP_SOF_1;
-    g_usb.tx_buffer[2] = length;
-    g_usb.tx_buffer[3] = cmd;
-
-    if ((length > 0U) && (data != NULL))
-    {
-        memcpy(&g_usb.tx_buffer[4], data, length);
-    }
-
-    crc = USB_Crc16(g_usb.tx_buffer, (uint16_t)(4U + length));
-    USB_WriteU16Le(&g_usb.tx_buffer[4U + length], crc);
-    g_usb.tx_buffer[6U + length] = USB_APP_EOF_0;
-    g_usb.tx_buffer[7U + length] = USB_APP_EOF_1;
-    frame_len = (uint16_t)(USB_APP_FRAME_OVERHEAD + length);
-
-    return (CDC_Transmit_FS(g_usb.tx_buffer, frame_len) == USBD_OK) ? 1U : 0U;
-}
-
-static uint8_t USB_SendBootMessage(uint32_t now_ms)
-{
-    uint8_t payload[USB_APP_BOOT_LEN];
-
-    USB_WriteU32Le(payload, now_ms);
-    return USB_SendFrame(USB_CMD_GIMBAL_BOOT, payload, USB_APP_BOOT_LEN);
-}
-
-static uint8_t USB_SendHandshakeAck(uint32_t now_ms)
-{
-    uint8_t payload[USB_APP_HANDSHAKE_ACK_LEN];
-
-    USB_WriteU32Le(payload, now_ms);
-    return USB_SendFrame(USB_CMD_GIMBAL_HANDSHAKE_ACK, payload, USB_APP_HANDSHAKE_ACK_LEN);
-}
-
-static uint8_t USB_SendFeedback(uint32_t now_ms)
-{
-    int16_t yaw = 0;
-    int16_t pitch = 0;
-    int16_t roll = 0;
-    uint8_t payload[USB_APP_FEEDBACK_LEN];
-
-    USB_GetFeedbackAngles(now_ms, &yaw, &pitch, &roll);
-
-    USB_WriteU16Le(&payload[0], (uint16_t)yaw);
-    USB_WriteU16Le(&payload[2], (uint16_t)pitch);
-    USB_WriteU16Le(&payload[4], (uint16_t)roll);
-    USB_WriteU32Le(&payload[6], now_ms);
-    payload[10] = (uint8_t)g_usb.mode;
-    payload[11] = 0U;
-
-    return USB_SendFrame(USB_CMD_GIMBAL_FEEDBACK, payload, USB_APP_FEEDBACK_LEN);
-}
-
-static uint8_t USB_SendLockNotification(void)
-{
-    uint8_t payload[USB_APP_LOCK_NOTIFICATION_LEN];
-
-    USB_WriteU32Le(payload, g_usb.pending_lock_timestamp_ms);
-    payload[4] = (uint8_t)g_usb.pending_lock_reason;
-    return USB_SendFrame(USB_CMD_GIMBAL_LOCKED, payload, USB_APP_LOCK_NOTIFICATION_LEN);
-}
-
-static void USB_GetFeedbackAngles(uint32_t now_ms, int16_t *yaw, int16_t *pitch, int16_t *roll)
-{
-    if ((yaw == NULL) || (pitch == NULL) || (roll == NULL))
-    {
-        return;
-    }
-
-    switch (g_usb.mode)
-    {
-    case GIMBAL_MODE_SEARCH:
-    {
-        float elapsed_ms = (float)(now_ms - g_usb.waveform_start_ms);
-        float phase = (2.0f * USB_APP_PI * elapsed_ms) / USB_APP_WAVEFORM_PERIOD_MS;
-        *yaw = (int16_t)(arm_sin_f32(phase) * USB_APP_YAW_AMPLITUDE_DEG_X1000);
-        *pitch = (int16_t)(arm_cos_f32(phase) * USB_APP_PITCH_AMPLITUDE_DEG_X1000);
-        *roll = 0;
-        break;
-    }
-
-    case GIMBAL_MODE_AUTO_AIM:
-        *yaw = g_usb.last_aim_command.yaw_target;
-        *pitch = g_usb.last_aim_command.pitch_target;
-        *roll = 0;
-        break;
-
-    case GIMBAL_MODE_STABLE:
-    case GIMBAL_MODE_LOCK_PROTECT:
-    case GIMBAL_MODE_DISABLE:
-    default:
-        *yaw = 0;
-        *pitch = 0;
-        *roll = 0;
-        break;
-    }
-}
-
-static void USB_HandleFrame(uint8_t cmd, const uint8_t *data, uint8_t length, uint32_t now_ms)
-{
-    if (g_usb.mode == GIMBAL_MODE_LOCK_PROTECT)
-    {
-        if ((cmd == USB_CMD_VISION_UNLOCK) && (length == USB_APP_UNLOCK_LEN))
-        {
-            g_usb.lock_notification_pending = 0U;
-            g_usb.boot_timeout_armed = 0U;
-            if (g_usb.handshake_completed != 0U)
-            {
-                g_usb.heartbeat_armed = 1U;
-                g_usb.last_heartbeat_rx_ms = now_ms;
-            }
-            g_usb.last_mode_packet_ms = now_ms;
-            if (g_usb.stream_enabled != 0U)
-            {
-                g_usb.last_feedback_ms = now_ms - USB_APP_FEEDBACK_PERIOD_MS;
-            }
-            USB_SetMode(GIMBAL_MODE_STABLE, now_ms);
-        }
-        return;
-    }
-
     switch (cmd)
     {
-    case USB_CMD_VISION_HANDSHAKE_REQ:
-        if (length == USB_APP_HANDSHAKE_REQ_LEN)
-        {
-            g_usb.handshake_reply_pending = 1U;
-        }
-        break;
-
     case USB_CMD_VISION_ENABLE_STREAM:
-        if ((g_usb.handshake_completed != 0U) && (length == USB_APP_ENABLE_STREAM_LEN))
-        {
-            g_usb.stream_enabled = 1U;
-            g_usb.last_feedback_ms = now_ms - USB_APP_FEEDBACK_PERIOD_MS;
-        }
-        break;
+    case USB_CMD_VISION_LOCK:
+    case USB_CMD_VISION_UNLOCK:
+        return (length == 0U) ? 1U : 0U;
 
     case USB_CMD_VISION_SEARCH:
-        if ((g_usb.handshake_completed != 0U) && (length == USB_APP_SEARCH_LEN))
-        {
-            g_usb.last_mode_packet_ms = now_ms;
-            USB_SetMode(GIMBAL_MODE_SEARCH, now_ms);
-        }
-        break;
+        return (length == USB_APP_SEARCH_LEN) ? 1U : 0U;
 
     case USB_CMD_VISION_AUTO_AIM:
-        if ((g_usb.handshake_completed != 0U) && (length == USB_APP_AUTO_AIM_LEN))
-        {
-            g_usb.last_aim_command.yaw_target = USB_ReadI16Le(&data[0]);
-            g_usb.last_aim_command.pitch_target = USB_ReadI16Le(&data[2]);
-            g_usb.last_aim_command.time_stamp = USB_ReadU32Le(&data[4]);
-            g_usb.last_aim_command.reserved[0] = data[8];
-            g_usb.last_aim_command.reserved[1] = data[9];
-            g_usb.last_mode_packet_ms = now_ms;
-            USB_SetMode(GIMBAL_MODE_AUTO_AIM, now_ms);
-        }
-        break;
-
-    case USB_CMD_VISION_HEARTBEAT:
-        if ((g_usb.handshake_completed != 0U) && (length == USB_APP_HEARTBEAT_LEN))
-        {
-            g_usb.last_heartbeat.mode = data[0];
-            g_usb.last_heartbeat.time_stamp = USB_ReadU32Le(&data[1]);
-            g_usb.last_heartbeat_rx_ms = now_ms;
-            g_usb.heartbeat_armed = 1U;
-        }
-        break;
-
-    case USB_CMD_VISION_LOCK:
-        if (length == USB_APP_LOCK_LEN)
-        {
-            USB_EnterLock(LOCK_REASON_MANUAL, now_ms);
-        }
-        break;
+        return (length == USB_APP_AUTO_AIM_LEN) ? 1U : 0U;
 
     default:
-        break;
+        return 0U;
+    }
+}
+
+static void USB_HandleFrame(uint8_t cmd, uint8_t length, uint32_t now_ms)
+{
+    if (USB_IsSupportedCommand(cmd, length) != 0U)
+    {
+        LED_TriggerPulse(now_ms, USB_APP_LED_ON_TIME_MS);
     }
 }
 
@@ -537,10 +174,7 @@ static void USB_ProcessRxBuffer(uint32_t now_ms)
             continue;
         }
 
-        USB_HandleFrame(g_usb.rx_buffer[index + 3U],
-                        &g_usb.rx_buffer[index + 4U],
-                        data_len,
-                        now_ms);
+        USB_HandleFrame(g_usb.rx_buffer[index + 3U], data_len, now_ms);
         index = (uint16_t)(index + frame_len);
     }
 

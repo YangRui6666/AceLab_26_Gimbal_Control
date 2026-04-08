@@ -1,13 +1,11 @@
 #include "LED.h"
 
-#include <stdbool.h>
-
 #include "main.h"
 
 typedef struct
 {
-    LedPattern_t pattern;
     uint8_t is_led_on;
+    uint32_t pulse_deadline_ms;
 } LedContext_t;
 
 static LedContext_t g_led;
@@ -22,41 +20,21 @@ static void LED_Write(uint8_t is_on)
 
 void LED_Init(void)
 {
-    g_led.pattern = LED_PATTERN_OFF;
+    g_led.is_led_on = 0U;
+    g_led.pulse_deadline_ms = 0U;
     LED_Write(0U);
 }
 
-void LED_SetPattern(LedPattern_t pattern)
+void LED_TriggerPulse(uint32_t now_ms, uint32_t duration_ms)
 {
-    g_led.pattern = pattern;
+    g_led.pulse_deadline_ms = now_ms + duration_ms;
+    LED_Write(1U);
 }
 
 void LED_Task(uint32_t now_ms)
 {
-    uint8_t is_on = 0U;
-
-    switch (g_led.pattern)
+    if ((g_led.is_led_on != 0U) && ((int32_t)(now_ms - g_led.pulse_deadline_ms) >= 0))
     {
-    case LED_PATTERN_WAIT_CONNECT:
-        is_on = ((now_ms % 999U) < 5000U) ? 1U : 0U;
-        break;
-
-    case LED_PATTERN_USB_ACTIVE:
-        is_on = ((now_ms % 200U) < 100U) ? 1U : 0U;
-        break;
-
-    case LED_PATTERN_LOCKED:
-        is_on = ((now_ms % 1000U) < 100U) ? 1U : 0U;
-        break;
-
-    case LED_PATTERN_OFF:
-    default:
-        is_on = 0U;
-        break;
-    }
-
-    if (is_on != g_led.is_led_on)
-    {
-        LED_Write(is_on);
+        LED_Write(0U);
     }
 }
