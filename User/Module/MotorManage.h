@@ -18,7 +18,6 @@ public:
     void set(float yaw_target, float pitch_target);
     void lock();
 
-private:
     GM6020 yaw_;
     GM6020 pitch_;
 

@@ -34,7 +34,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/User/Module/imu_fusion.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Bsp/Src/bsp_imu.c" beforeDir="false" afterPath="$PROJECT_DIR$/User/Bsp/Src/bsp_imu.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Bsp/Src/bsp_usb.c" beforeDir="false" afterPath="$PROJECT_DIR$/User/Bsp/Src/bsp_usb.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/imu_fusion.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/imu_fusion.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeCache.txt" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeCache.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/Debug/Testing/Temporary/LastTest.log" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/Testing/Temporary/LastTest.log" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -139,7 +145,7 @@
       <option name="presentableId" value="Default" />
       <updated>1775718672288</updated>
       <workItem from="1775718673373" duration="8719000" />
-      <workItem from="1775747627656" duration="3947000" />
+      <workItem from="1775747627656" duration="7869000" />
     </task>
     <task id="LOCAL-00001" summary="搭建起来一个自己的框架">
       <option name="closed" value="true" />
@@ -154,6 +160,11 @@
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VCPKGProject">
+    <isAutomaticCheckingOnLaunch value="false" />
+    <isAutomaticFoundErrors value="true" />
+    <isAutomaticReloadCMake value="true" />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">

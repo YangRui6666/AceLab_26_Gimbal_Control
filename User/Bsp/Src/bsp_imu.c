@@ -1,6 +1,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+
+//imu的型号为bmi088
 typedef struct 
 {
     int16_t acc_x;
