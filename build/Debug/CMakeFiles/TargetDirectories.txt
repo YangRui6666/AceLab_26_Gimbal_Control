@@ -1,8 +1,8 @@
-D:/ACE/AceLab_26_Gimbal_Control/code/Gimbalv3/build/Debug/CMakeFiles/Gimbal_hu.dir
-D:/ACE/AceLab_26_Gimbal_Control/code/Gimbalv3/build/Debug/CMakeFiles/edit_cache.dir
-D:/ACE/AceLab_26_Gimbal_Control/code/Gimbalv3/build/Debug/CMakeFiles/rebuild_cache.dir
-D:/ACE/AceLab_26_Gimbal_Control/code/Gimbalv3/build/Debug/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir
-D:/ACE/AceLab_26_Gimbal_Control/code/Gimbalv3/build/Debug/cmake/stm32cubemx/CMakeFiles/USB_Device_Library.dir
-D:/ACE/AceLab_26_Gimbal_Control/code/Gimbalv3/build/Debug/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir
-D:/ACE/AceLab_26_Gimbal_Control/code/Gimbalv3/build/Debug/cmake/stm32cubemx/CMakeFiles/edit_cache.dir
-D:/ACE/AceLab_26_Gimbal_Control/code/Gimbalv3/build/Debug/cmake/stm32cubemx/CMakeFiles/rebuild_cache.dir
+D:/ACE/Gv3/Gimbalv3/build/Debug/CMakeFiles/Gimbal_um.dir
+D:/ACE/Gv3/Gimbalv3/build/Debug/CMakeFiles/edit_cache.dir
+D:/ACE/Gv3/Gimbalv3/build/Debug/CMakeFiles/rebuild_cache.dir
+D:/ACE/Gv3/Gimbalv3/build/Debug/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir
+D:/ACE/Gv3/Gimbalv3/build/Debug/cmake/stm32cubemx/CMakeFiles/USB_Device_Library.dir
+D:/ACE/Gv3/Gimbalv3/build/Debug/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir
+D:/ACE/Gv3/Gimbalv3/build/Debug/cmake/stm32cubemx/CMakeFiles/edit_cache.dir
+D:/ACE/Gv3/Gimbalv3/build/Debug/cmake/stm32cubemx/CMakeFiles/rebuild_cache.dir

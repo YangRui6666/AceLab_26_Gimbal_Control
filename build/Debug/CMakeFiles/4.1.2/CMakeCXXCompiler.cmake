@@ -25,10 +25,10 @@ set(CMAKE_CXX_COMPILER_ARCHITECTURE_ID "armv7")
 
 
 
-set(CMAKE_AR "C:/Users/CORE/.eide/tools/gcc_arm/bin/arm-none-eabi-ar.exe")
-set(CMAKE_CXX_COMPILER_AR "C:/Users/CORE/.eide/tools/gcc_arm/bin/arm-none-eabi-gcc-ar.exe")
-set(CMAKE_RANLIB "C:/Users/CORE/.eide/tools/gcc_arm/bin/arm-none-eabi-ranlib.exe")
-set(CMAKE_CXX_COMPILER_RANLIB "C:/Users/CORE/.eide/tools/gcc_arm/bin/arm-none-eabi-gcc-ranlib.exe")
+set(CMAKE_AR "C:/ST/STM32CubeCLT_1.20.0/GNU-tools-for-STM32/bin/arm-none-eabi-ar.exe")
+set(CMAKE_CXX_COMPILER_AR "C:/ST/STM32CubeCLT_1.20.0/GNU-tools-for-STM32/bin/arm-none-eabi-gcc-ar.exe")
+set(CMAKE_RANLIB "C:/ST/STM32CubeCLT_1.20.0/GNU-tools-for-STM32/bin/arm-none-eabi-ranlib.exe")
+set(CMAKE_CXX_COMPILER_RANLIB "C:/ST/STM32CubeCLT_1.20.0/GNU-tools-for-STM32/bin/arm-none-eabi-gcc-ranlib.exe")
 set(CMAKE_LINKER "C:/ST/STM32CubeCLT_1.20.0/GNU-tools-for-STM32/bin/arm-none-eabi-g++.exe")
 set(CMAKE_LINKER_LINK "")
 set(CMAKE_LINKER_LLD "")

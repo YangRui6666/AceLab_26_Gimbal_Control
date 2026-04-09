@@ -19,7 +19,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Set the project name
-set(CMAKE_PROJECT_NAME Gimbal_hu)
+set(CMAKE_PROJECT_NAME Gimbal_um)
 
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
@@ -32,7 +32,19 @@ message("Build type: " ${CMAKE_BUILD_TYPE})
 enable_language(C ASM)
 
 # Create an executable object type
-add_executable(${CMAKE_PROJECT_NAME})
+add_executable(${CMAKE_PROJECT_NAME}
+        User/Bsp/Src/bsp_usb.c
+        User/Bsp/Src/bsp_imu.c
+        User/Bsp/Src/bsp_can.c
+        User/Device/device_gm6020.cpp
+        User/Bsp/Inc/bsp_can.h
+        User/Module/MotorManage.cpp
+        User/Module/PID.cpp
+        User/Module/PID.h
+        User/Task/ctrl_task.cpp
+        User/Task/communicate_task.cpp
+        User/Module/MotorManage.h
+        User/Module/imu_fusion.cpp)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
@@ -50,6 +62,9 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
+    User/Bsp/Inc
+    User/Device
+
 )
 
 # Add project symbols (macros)
