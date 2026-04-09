@@ -55,17 +55,17 @@ const osThreadAttr_t defaultTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for ControlTaskTask */
-osThreadId_t ControlTaskTaskHandle;
-const osThreadAttr_t ControlTaskTask_attributes = {
-  .name = "ControlTaskTask",
+/* Definitions for CtrlTask */
+osThreadId_t CtrlTaskHandle;
+const osThreadAttr_t CtrlTask_attributes = {
+  .name = "CtrlTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityRealtime,
 };
-/* Definitions for VisionTask */
-osThreadId_t VisionTaskHandle;
-const osThreadAttr_t VisionTask_attributes = {
-  .name = "VisionTask",
+/* Definitions for CommunicateTask */
+osThreadId_t CommunicateTaskHandle;
+const osThreadAttr_t CommunicateTask_attributes = {
+  .name = "CommunicateTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
@@ -85,8 +85,8 @@ static void MX_DMA_Init(void);
 static void MX_CAN1_Init(void);
 static void MX_SPI1_Init(void);
 void StartDefaultTask(void *argument);
-void ControlStartTask(void *argument);
-void StartVisionTask03(void *argument);
+void StartCtrlTask(void *argument);
+void StartCommunicateTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -160,11 +160,11 @@ int main(void)
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
-  /* creation of ControlTaskTask */
-  ControlTaskTaskHandle = osThreadNew(ControlStartTask, NULL, &ControlTaskTask_attributes);
+  /* creation of CtrlTask */
+  CtrlTaskHandle = osThreadNew(StartCtrlTask, NULL, &CtrlTask_attributes);
 
-  /* creation of VisionTask */
-  VisionTaskHandle = osThreadNew(StartVisionTask03, NULL, &VisionTask_attributes);
+  /* creation of CommunicateTask */
+  CommunicateTaskHandle = osThreadNew(StartCommunicateTask, NULL, &CommunicateTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -399,40 +399,40 @@ void StartDefaultTask(void *argument)
   /* USER CODE END 5 */
 }
 
-/* USER CODE BEGIN Header_ControlStartTask */
+/* USER CODE BEGIN Header_StartCtrlTask */
 /**
-* @brief Function implementing the ControlTaskTask thread.
+* @brief Function implementing the CtrlTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_ControlStartTask */
-__weak void ControlStartTask(void *argument)
+/* USER CODE END Header_StartCtrlTask */
+__weak void StartCtrlTask(void *argument)
 {
-  /* USER CODE BEGIN ControlStartTask */
+  /* USER CODE BEGIN StartCtrlTask */
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END ControlStartTask */
+  /* USER CODE END StartCtrlTask */
 }
 
-/* USER CODE BEGIN Header_StartVisionTask03 */
+/* USER CODE BEGIN Header_StartCommunicateTask */
 /**
-* @brief Function implementing the VisionTask thread.
+* @brief Function implementing the CommunicateTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartVisionTask03 */
-__weak void StartVisionTask03(void *argument)
+/* USER CODE END Header_StartCommunicateTask */
+__weak void StartCommunicateTask(void *argument)
 {
-  /* USER CODE BEGIN StartVisionTask03 */
+  /* USER CODE BEGIN StartCommunicateTask */
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END StartVisionTask03 */
+  /* USER CODE END StartCommunicateTask */
 }
 
 /**

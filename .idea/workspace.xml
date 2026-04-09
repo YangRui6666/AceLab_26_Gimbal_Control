@@ -3,6 +3,9 @@
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
+  <component name="BackendCodeEditorMiscSettings">
+    <option name="/Default/Housekeeping/OptionsDialog/SelectedPageId/@EntryValue" value="CppFormatterOtherPage" type="string" />
+  </component>
   <component name="CMakePresetLoader"><![CDATA[{
   "useNewFormat": true
 }]]></component>
@@ -29,57 +32,20 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/User/Bsp/Inc/bsp_can.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/User/Device/device_gm6020.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/User/Device/device_gm6020.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/User/Module/MotorManage.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/User/Module/MotorManage.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/User/Module/PID.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/User/Module/PID.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/User/Module/imu_fusion.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/User/Task/communicate_task.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.name" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.name" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/debugServers/ST_LINK.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/debugServers/ST_LINK.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.mxproject" beforeDir="false" afterPath="$PROJECT_DIR$/.mxproject" afterDir="false" />
+    <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="搭建起来一个自己的框架">
+      <change afterPath="$PROJECT_DIR$/User/Library/MahonyAHRS.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/User/Library/MahonyAHRS.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/User/Task/state.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/.cmake/api/v1/reply/cache-v2-761aacaa01624c173992.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/.cmake/api/v1/reply/cmakeFiles-v1-2b4eb0c24da41c9e4f0a.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/.cmake/api/v1/reply/codemodel-v2-6d37e98baad8bc326d61.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/.cmake/api/v1/reply/index-2026-04-09T06-59-17-0738.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/.cmake/api/v1/reply/target-FreeRTOS-Debug-2005dd2f0c396f0c1a78.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/.cmake/api/v1/reply/target-Gimbal_hu-Debug-99ac36d80c35a4888ba6.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/.cmake/api/v1/reply/target-STM32_Drivers-Debug-52fe1232dfe20271f30e.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/.cmake/api/v1/reply/target-USB_Device_Library-Debug-368838644a7b18ac3d87.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/.cmake/api/v1/reply/toolchains-v1-ca5b9a623a7bea56509d.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeCache.txt" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeCache.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CMakeASMCompiler.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CMakeASMCompiler.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CMakeCCompiler.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CMakeCCompiler.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CMakeCXXCompiler.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CMakeCXXCompiler.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CMakeDetermineCompilerABI_C.bin" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CMakeDetermineCompilerABI_C.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CMakeDetermineCompilerABI_CXX.bin" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CMakeDetermineCompilerABI_CXX.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CMakeSystem.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CMakeSystem.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CompilerIdC/CMakeCCompilerId.o" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CompilerIdC/CMakeCCompilerId.o" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CompilerIdCXX/CMakeCXXCompilerId.o" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/3.28.1/CompilerIdCXX/CMakeCXXCompilerId.o" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/4.1.2/CMakeASMCompiler.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/4.1.2/CMakeASMCompiler.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/4.1.2/CMakeCCompiler.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/4.1.2/CMakeCCompiler.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/4.1.2/CMakeCXXCompiler.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/4.1.2/CMakeCXXCompiler.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/4.1.2/CMakeDetermineCompilerABI_C.bin" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/4.1.2/CMakeDetermineCompilerABI_C.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/4.1.2/CMakeDetermineCompilerABI_CXX.bin" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/4.1.2/CMakeDetermineCompilerABI_CXX.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/4.1.2/CMakeSystem.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/4.1.2/CMakeSystem.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/CMakeConfigureLog.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/CMakeConfigureLog.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/InstallScripts.json" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/InstallScripts.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/TargetDirectories.txt" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/TargetDirectories.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/clean_additional.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/clean_additional.cmake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Core/Src/main.c" beforeDir="false" afterPath="$PROJECT_DIR$/Core/Src/main.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Gimbal_hu.ioc" beforeDir="false" afterPath="$PROJECT_DIR$/Gimbal_hu.ioc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Task/communicate_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/communicate_task.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/clion-Debug - Debug-log.txt" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/clion-Debug - Debug-log.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/rules.ninja" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/rules.ninja" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build/Debug/Testing/Temporary/LastTest.log" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/Testing/Temporary/LastTest.log" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build/Debug/build.ninja" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/build.ninja" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/cmake/stm32cubemx/cmake_install.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/cmake/stm32cubemx/cmake_install.cmake" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/cmake_install.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/cmake_install.cmake" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build/Debug/compile_commands.json" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/compile_commands.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -133,6 +99,7 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "git-widget-placeholder": "master",
+    "last_opened_file_path": "D:/ACE/Gv3/Gimbalv3/User/Library",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -143,6 +110,11 @@
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\ACE\Gv3\Gimbalv3\User\Library" />
+    </key>
+  </component>
   <component name="RunManager" selected="CMake 应用程序.Gimbal_um">
     <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
@@ -183,11 +155,35 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1775718672288</updated>
-      <workItem from="1775718673373" duration="5946000" />
+      <workItem from="1775718673373" duration="7841000" />
     </task>
+    <task id="LOCAL-00001" summary="搭建起来一个自己的框架">
+      <option name="closed" value="true" />
+      <created>1775727723015</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1775727723016</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="搭建起来一个自己的框架" />
+    <option name="LAST_COMMIT_MESSAGE" value="搭建起来一个自己的框架" />
   </component>
 </project>
