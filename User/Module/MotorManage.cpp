@@ -46,7 +46,7 @@ void MotorManage::update_feedback()
  */
 void MotorManage::send_can_cmd()
 {
-    //我们使用的是电流控制，所以canid的控制帧为0x200
+    //我们使用的是电流控制
     //这里需要处理电机组合控制的情况
     //具体而言
 }
