@@ -69,10 +69,10 @@ const osThreadAttr_t CommunicateTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
-/* Definitions for VisionBinarySem */
-osSemaphoreId_t VisionBinarySemHandle;
-const osSemaphoreAttr_t VisionBinarySem_attributes = {
-  .name = "VisionBinarySem"
+/* Definitions for comm_sem */
+osSemaphoreId_t comm_semHandle;
+const osSemaphoreAttr_t comm_sem_attributes = {
+  .name = "comm_sem"
 };
 /* USER CODE BEGIN PV */
 
@@ -141,8 +141,8 @@ int main(void)
   /* USER CODE END RTOS_MUTEX */
 
   /* Create the semaphores(s) */
-  /* creation of VisionBinarySem */
-  VisionBinarySemHandle = osSemaphoreNew(1, 1, &VisionBinarySem_attributes);
+  /* creation of comm_sem */
+  comm_semHandle = osSemaphoreNew(1, 1, &comm_sem_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
