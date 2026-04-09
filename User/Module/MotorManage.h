@@ -10,6 +10,8 @@
 
 class MotorManage {
 public:
+    MotorManage();
+
     bool init();
     void update_feedback();
     void send_can_cmd();
