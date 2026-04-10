@@ -24,6 +24,12 @@ public:
         int16_t current;        //电流
         uint16_t encoder_raw;
     };
+    struct Target
+    {
+        //放缩100倍
+        int32_t target_angle_cdeg;    
+        int32_t target_speed_cdps;    
+    };
 
 public:
     GM6020(uint16_t can_id, int16_t max_current, int32_t limit_cpos, int32_t limit_cneg);
@@ -32,6 +38,8 @@ public:
     bool update();
     State get_state() const;
     bool check(uint32_t now_ms) const;
+
+    uint16_t get_can_id() const { return can_id_; }
 
 private:
     uint16_t can_id_;
