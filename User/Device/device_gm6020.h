@@ -26,8 +26,8 @@ public:
     };
     struct Target
     {
-        //放缩100倍
-        int32_t target_angle_cdeg;    
+        
+        int32_t target_current;    
         int32_t target_speed_cdps;    
     };
 
@@ -37,6 +37,7 @@ public:
     bool init();
     bool update();
     State get_state() const;
+    Target get_target() const;
     bool check(uint32_t now_ms) const;
 
     uint16_t get_can_id() const { return can_id_; }

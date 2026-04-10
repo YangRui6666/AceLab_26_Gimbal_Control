@@ -12,7 +12,6 @@ class MotorManage {
 public:
     MotorManage();
 
-    bool init();
     void update_feedback();
     void send_can_cmd();
     void set(float yaw_target, float pitch_target);

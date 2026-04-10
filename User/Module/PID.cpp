@@ -54,9 +54,9 @@ void PID::reset()
  * @date        2026-04-10
  * @author      Rui.
  * 
- * @param setpoint 
- * @param measurement 
- * @param dt_s 
+ * @param setpoint 目标点
+ * @param measurement 设置点
+ * @param dt_s 间隔时间
  * @return float 
  */
 float PID::calculate(float setpoint, float measurement, float dt_s)

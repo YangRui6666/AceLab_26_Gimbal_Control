@@ -40,16 +40,46 @@ void MotorManage::send_can_cmd()
     //这里需要处理电机组合控制的情况
     //具体而言
     int16_t current_pack[4] = {0};
-    
-    
+    current_pack[1] = yaw_.get_target().target_current;
+    current_pack[3] = pitch_.get_target().target_current;
+    bsp_tx(0xFE, (uint8_t*)current_pack, 8);
 }
 
 void MotorManage::set(float yaw_target, float pitch_target)
 {
     //这里先跑位置pid，得到目标速度，再跑速度pid，得到电流值，最后保存电流值，等待发送
+    #define DDEBUG_ALL_ON
+    #ifdef DDEBUG_ALL_ON
+    #define DDEBUG_YAW_ON
+    #define DDEBUG_PITCH_ON
+    #endif
+    
+    #ifdef DDEBUG_YAW_ON
+    volatile static int kp_debug_yaw = 10;
+    volatile static int ki_debug_yaw = 0;
+    volatile static int kd_debug_yaw = 0;
+    yaw_pid_location_.set_kp(kp_debug_yaw);
+    yaw_pid_location_.set_ki(ki_debug_yaw);
+    yaw_pid_location_.set_kd(kd_debug_yaw);
+    #endif
+    #ifdef DDEBUG_PITCH_ON
+    volatile static int kp_debug_pitch = 10;
+    volatile static int ki_debug_pitch = 0;
+    volatile static int kd_debug_pitch = 0;
+    pitch_pid_location_.set_kp(kp_debug_pitch);
+    pitch_pid_location_.set_ki(ki_debug_pitch);
+    pitch_pid_location_.set_kd(kd_debug_pitch);
+    #endif
+    auto yaw_state = yaw_.get_state();
+    auto pitch_state = pitch_.get_state();
+
+
 }
 
 void MotorManage::lock()
 {
     //这里让电机电流值清零，发送0电流值
+
+    int16_t current[4] = {0};
+    bsp_tx(0xFE, (uint8_t*)current, 8);
 }
