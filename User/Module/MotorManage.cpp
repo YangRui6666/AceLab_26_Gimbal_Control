@@ -36,9 +36,7 @@ void MotorManage::update_feedback()
  */
 void MotorManage::send_can_cmd()
 {
-    //我们使用的是电流控制
-    //这里需要处理电机组合控制的情况
-    //具体而言
+
     int16_t current_pack[4] = {0};
     current_pack[1] = yaw_.get_target().target_current;
     current_pack[3] = pitch_.get_target().target_current;
@@ -48,7 +46,7 @@ void MotorManage::send_can_cmd()
 void MotorManage::set(float yaw_target, float pitch_target)
 {
     //这里先跑位置pid，得到目标速度，再跑速度pid，得到电流值，最后保存电流值，等待发送
-    #define DDEBUG_ALL_ON
+    
     #ifdef DDEBUG_ALL_ON
     #define DDEBUG_YAW_ON
     #define DDEBUG_PITCH_ON
@@ -82,4 +80,14 @@ void MotorManage::lock()
 
     int16_t current[4] = {0};
     bsp_tx(0xFE, (uint8_t*)current, 8);
+}
+
+GM6020::Target MotorManage::get_yaw_target() const
+{
+    return yaw_.get_target();
+}
+
+GM6020::Target MotorManage::get_pitch_target() const
+{
+    return pitch_.get_target();
 }

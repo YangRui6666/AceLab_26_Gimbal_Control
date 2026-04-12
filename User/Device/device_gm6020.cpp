@@ -6,11 +6,11 @@
 #include "device_gm6020.h"
 
 /**
- * @brief       Construct a new GM6020::GM6020 object 
- * 
+ * @brief       Construct a new GM6020::GM6020 object
+ *
  * @date        2026-04-09
  * @author      Rui.
- * 
+ *
  * @param can_id    电机的CAN ID
  * @param max_current 电机允许的最大电流
  * @param limit_cpos    电机正机械角度限制，单位0.01°
@@ -23,21 +23,19 @@ GM6020::GM6020(uint16_t can_id, int16_t max_current, int32_t limit_cpos, int32_t
     limit_cpos_ = limit_cpos;
     limit_cneg_ = limit_cneg;
     last_rx_time_ = 0;
-    
 }
 
 /**
  * @brief       电机的初始化函数
- * 
+ *
  * @date        2026-04-09
  * @author      Rui.
- * 
- * @return true 
- * @return false 
+ *
+ * @return true
+ * @return false
  */
 bool GM6020::init()
 {
-
     state_.angle_cdeg = 0;
     state_.speed_cdps = 0;
     state_.current = 0;
@@ -50,34 +48,67 @@ bool GM6020::init()
 
 /**
  * @brief       更新电机内部参数
- * 
+ *
  * @date        2026-04-09
  * @author      Rui.
- * 
- * @return true 
- * @return false 
+ *
+ * @return true
+ * @return false
  */
 bool GM6020::update()
 {
-    //此处将会调用bsp_can_rx函数获取数据，并更新state_和last_rx_time_
     CanRxFrame frame;
-    if (bsp_can_rx(can_id_, &frame))
+    const int32_t encoder_range = 8192;
+    const int32_t angle_per_turn_cdeg = 36000;
+
+    if (!bsp_can_rx(can_id_, &frame) || frame.dlc != 8U)
     {
-        //TODO:
-        // 解析接收到的CAN数据并更新电机状态
-        // 这里需要根据具体的CAN数据格式进行解析
-        last_rx_time_ = frame.timestamp_ms;
+        return false;
     }
 
-    return false;
+    const uint16_t raw_encoder   = (uint16_t)((frame.data[0] << 8U) | frame.data[1]);
+    const int16_t raw_speed_rpm  = (int16_t)((frame.data[2] << 8U) | frame.data[3]);
+    const int16_t raw_current    = (int16_t)((frame.data[4] << 8U) | frame.data[5]);
+
+    if (raw_encoder >= encoder_range)
+    {
+        return false;
+    }
+
+    if (last_rx_time_ == 0U)
+    {
+        state_.angle_cdeg = (int32_t)raw_encoder * angle_per_turn_cdeg / encoder_range;
+    }
+    else
+    {
+        int32_t delta_encoder = (int32_t)raw_encoder - (int32_t)state_.encoder_raw;
+
+        if (delta_encoder > encoder_range / 2)
+        {
+            delta_encoder -= encoder_range;
+        }
+        else if (delta_encoder < -(encoder_range / 2))
+        {
+            delta_encoder += encoder_range;
+        }
+
+        state_.angle_cdeg += delta_encoder * angle_per_turn_cdeg / encoder_range;
+    }
+
+    state_.encoder_raw = raw_encoder;
+    state_.speed_cdps = (int32_t)raw_speed_rpm * 600;
+    state_.current = raw_current;
+    last_rx_time_ = frame.timestamp_ms;
+
+    return true;
 }
 
 /**
  * @brief       获取电机状态快照
- * 
+ *
  * @date        2026-04-09
  * @author      Rui.
- * 
+ *
  * @return GM6020::State 电机状态结构体，包含角度、速度、电流和编码器原始值
  */
 GM6020::State GM6020::get_state() const
@@ -85,15 +116,20 @@ GM6020::State GM6020::get_state() const
     return state_;
 }
 
+GM6020::Target GM6020::get_target() const
+{
+    return target_;
+}
+
 /**
  * @brief       检查电机是否离线
- * 
+ *
  * @date        2026-04-09
  * @author      Rui.
- * 
+ *
  * @param now_ms 传入当前时间的毫秒数，用于与上次接收时间进行比较
- * @return true 
- * @return false 
+ * @return true
+ * @return false
  */
 bool GM6020::check(uint32_t now_ms) const
 {
@@ -101,6 +137,6 @@ bool GM6020::check(uint32_t now_ms) const
     {
         return true;
     }
-    
+
     return false;
 }

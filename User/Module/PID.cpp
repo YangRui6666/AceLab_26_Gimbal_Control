@@ -34,6 +34,12 @@ PID::PID()
  */
 void PID::init(float kp, float ki, float kd, float integral_limit, float output_limit, float derivative_filter)
 {
+    kp_ = kp;
+    ki_ = ki;
+    kd_ = kd;
+    integral_limit_ = integral_limit;
+    output_limit_ = output_limit;
+    derivative_filter_ = derivative_filter;
 }
 
 /**
@@ -45,7 +51,11 @@ void PID::init(float kp, float ki, float kd, float integral_limit, float output_
  */
 void PID::reset()
 {
-    
+    integral_ = 0.0f;
+    prev_error_ = 0.0f;
+    prev_measurement_ = 0.0f;
+    filtered_derivative_ = 0.0f;
+
 }
 
 /**

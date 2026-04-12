@@ -17,6 +17,9 @@ public:
     void set(float yaw_target, float pitch_target);
     void lock();
 
+    GM6020::Target get_yaw_target() const;
+    GM6020::Target get_pitch_target() const;
+
     GM6020 yaw_;
     GM6020 pitch_;
 

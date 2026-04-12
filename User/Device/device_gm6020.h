@@ -49,6 +49,7 @@ private:
     int32_t limit_cneg_;        //负机械角度限制
 
     uint32_t last_rx_time_;     //毫秒
+    Target target_;
     State state_;
 };
 

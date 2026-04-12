@@ -5,7 +5,7 @@
 #include "cmsis_os2.h"
 #include "FreeRTOS.h"
 #include "task.h"
-
+#include "usbd_def.h"
 
 
 void StartCommunicateTask(void *argument)
@@ -14,7 +14,7 @@ void StartCommunicateTask(void *argument)
     for(;;)
     {
         /*code*/
-
+        osDelay(osWaitForever);
     }
 }
 

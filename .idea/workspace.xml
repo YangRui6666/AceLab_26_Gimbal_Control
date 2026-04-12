@@ -5,6 +5,7 @@
   </component>
   <component name="BackendCodeEditorMiscSettings">
     <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
+    <option name="/Default/Housekeeping/LiveTemplatesHousekeeping/HotspotSessionHintIsShown/@EntryValue" value="true" type="bool" />
     <option name="/Default/Housekeeping/OptionsDialog/SelectedPageId/@EntryValue" value="CppFormatterOtherPage" type="string" />
   </component>
   <component name="CMakePresetLoader">{
@@ -34,12 +35,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/debugServers/ST_LINK.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/debugServers/ST_LINK.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Bsp/Src/bsp_imu.c" beforeDir="false" afterPath="$PROJECT_DIR$/User/Bsp/Src/bsp_imu.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Bsp/Src/bsp_usb.c" beforeDir="false" afterPath="$PROJECT_DIR$/User/Bsp/Src/bsp_usb.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Bsp/Inc/bsp_can.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Bsp/Inc/bsp_can.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Device/device_gm6020.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Device/device_gm6020.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Device/device_gm6020.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Device/device_gm6020.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/PID.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/PID.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Module/imu_fusion.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/imu_fusion.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/imu_fusion.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/imu_fusion.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Task/communicate_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/communicate_task.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build/Debug/CMakeCache.txt" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeCache.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/clion-Debug - Debug-log.txt" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/clion-Debug - Debug-log.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/build/Debug/Testing/Temporary/LastTest.log" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/Testing/Temporary/LastTest.log" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -51,7 +60,7 @@
     <option name="formatViaClangd" value="false" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="1556" />
+    <option name="cachedIndexableFilesCount" value="1598" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug - Debug" />
@@ -79,37 +88,52 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.RadMigrateCodeStyle&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.west.config.association.type.startup.service&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/ACE/Gv3/Gimbalv3/User/Library&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;org.rust.first.attach.projects&quot;: &quot;true&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.cidr.embedded.config&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "C/C++ 文件.scratch.cpp.executor": "Run",
+    "CMake 应用程序.Gimbal_um.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.RadMigrateCodeStyle": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "RunOnceActivity.west.config.association.type.startup.service": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "human",
+    "last_opened_file_path": "D:/ACE/Gv3/Gimbalv3/User/Library",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "org.rust.first.attach.projects": "true",
+    "settings.editor.selected.configurable": "com.jetbrains.cidr.rtos.config",
+    "vue.rearranger.settings.migration": "true"
+  },
+  "keyToStringList": {
+    "com.intellij.ide.scratch.ScratchImplUtil$2/新建临时文件": [
+      "C++"
+    ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\ACE\Gv3\Gimbalv3\User\Library" />
     </key>
   </component>
+  <component name="RtosSettings">
+    <option name="rtosEnabled" value="true" />
+  </component>
   <component name="RunManager" selected="CMake 应用程序.Gimbal_um">
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="FreeRTOS" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Gimbal_um" TARGET_NAME="FreeRTOS" CONFIG_NAME="Debug - Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -130,12 +154,24 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration name="scratch.cpp" type="CppFileRunConfiguration" factoryName="CppFileRunConfiguration" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Gimbal_um" TARGET_NAME="scratch.cpp" CONFIG_NAME="scratch.cpp">
+      <option name="sourceFile" value="C:\Users\CORE\AppData\Roaming\JetBrains\CLion2025.3\scratches\scratch.cpp" />
+      <method v="2">
+        <option name="com.jetbrains.cidr.cpp.runfile.CppFileBuildBeforeRunTaskProvider$BasicBuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <list>
+      <item itemvalue="C/C++ 文件.scratch.cpp" />
       <item itemvalue="CMake 应用程序.Gimbal_um" />
       <item itemvalue="CMake 应用程序.FreeRTOS" />
       <item itemvalue="CMake 应用程序.STM32_Drivers" />
       <item itemvalue="CMake 应用程序.USB_Device_Library" />
     </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="C/C++ 文件.scratch.cpp" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="默认任务">
@@ -146,6 +182,7 @@
       <updated>1775718672288</updated>
       <workItem from="1775718673373" duration="8719000" />
       <workItem from="1775747627656" duration="7869000" />
+      <workItem from="1775996156898" duration="4859000" />
     </task>
     <task id="LOCAL-00001" summary="搭建起来一个自己的框架">
       <option name="closed" value="true" />
@@ -180,5 +217,16 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="搭建起来一个自己的框架" />
     <option name="LAST_COMMIT_MESSAGE" value="搭建起来一个自己的框架" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/Core/Src/main.c</url>
+          <line>129</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

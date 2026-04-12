@@ -5,16 +5,22 @@
 #ifndef GIMBAL_UM_IMU_FUSION_H
 #define GIMBAL_UM_IMU_FUSION_H
 
-typedef struct imu_data_t
-{
+typedef struct imu_data_t {
     float yaw;
     float pitch;
     float roll;
-};
+} imu_data_t;
 
-void imu_init();
-void imu_update();
-void imu_get_data( imu_data_t *imu_data);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+void imu_init(void);
+void imu_update(void);
+void imu_get_data(imu_data_t *imu_data);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //GIMBAL_UM_IMU_FUSION_H
