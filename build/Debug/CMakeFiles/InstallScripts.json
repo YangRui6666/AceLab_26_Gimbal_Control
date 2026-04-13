@@ -1,8 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"D:/ACE/Gv3/Gimbalv3/build/Debug/cmake_install.cmake",
-		"D:/ACE/Gv3/Gimbalv3/build/Debug/cmake/stm32cubemx/cmake_install.cmake"
-	],
-	"Parallel" : false
-}
