@@ -12,11 +12,11 @@
  * @author      Rui.
  *
  * @param can_id    电机的CAN ID
- * @param max_current 电机允许的最大电流
- * @param limit_cpos    电机正机械角度限制，单位0.01°
- * @param limit_cneg    电机负机械角度限制，单位0.01°
+ * @param max_current 电机允许的最大电流原始值
+ * @param limit_cpos   电机正机械角度限制，单位deg
+ * @param limit_cneg   电机负机械角度限制，单位deg
  */
-GM6020::GM6020(uint16_t can_id, int16_t max_current, int32_t limit_cpos, int32_t limit_cneg)
+GM6020::GM6020(uint16_t can_id, int16_t max_current, float limit_cpos, float limit_cneg)
 {
     can_id_ = can_id;
     max_current_ = max_current;
@@ -25,7 +25,7 @@ GM6020::GM6020(uint16_t can_id, int16_t max_current, int32_t limit_cpos, int32_t
     last_rx_time_ = 0;
 
     target_.target_current = 0;
-    target_.target_speed_cdps = 0;
+    target_.target_speed_dps = 0.0f;
 }
 
 /**
@@ -39,8 +39,8 @@ GM6020::GM6020(uint16_t can_id, int16_t max_current, int32_t limit_cpos, int32_t
  */
 bool GM6020::init()
 {
-    state_.angle_cdeg = 0;
-    state_.speed_cdps = 0;
+    state_.angle_deg = 0.0f;
+    state_.speed_dps = 0.0f;
     state_.current = 0;
     state_.encoder_raw = 0;
     last_rx_time_ = 0;
@@ -62,7 +62,7 @@ bool GM6020::update()
 {
     CanRxFrame frame;
     const int32_t encoder_range = 8192;
-    const int32_t angle_per_turn_cdeg = 36000;
+    const float angle_per_turn_deg = 360.0f;
 
     if (!bsp_can_rx(can_id_, &frame) || frame.dlc != 8U)
     {
@@ -80,7 +80,7 @@ bool GM6020::update()
 
     if (last_rx_time_ == 0U)
     {
-        state_.angle_cdeg = (int32_t)raw_encoder * angle_per_turn_cdeg / encoder_range;
+        state_.angle_deg = (float)raw_encoder * angle_per_turn_deg / (float)encoder_range;
     }
     else
     {
@@ -95,11 +95,11 @@ bool GM6020::update()
             delta_encoder += encoder_range;
         }
 
-        state_.angle_cdeg += delta_encoder * angle_per_turn_cdeg / encoder_range;
+        state_.angle_deg += (float)delta_encoder * angle_per_turn_deg / (float)encoder_range;
     }
 
     state_.encoder_raw = raw_encoder;
-    state_.speed_cdps = (int32_t)raw_speed_rpm * 600;
+    state_.speed_dps = (float)raw_speed_rpm * 6.0f;
     state_.current = raw_current;
     last_rx_time_ = frame.timestamp_ms;
 
@@ -144,7 +144,7 @@ bool GM6020::check(uint32_t now_ms) const
     return false;
 }
 
-void GM6020::set_target_current(int32_t target_current)
+void GM6020::set_target_current(int16_t target_current)
 {
     if (target_current > max_current_)
     {
@@ -160,7 +160,7 @@ void GM6020::set_target_current(int32_t target_current)
     }
 }
 
-void GM6020::set_target_speed_cdps(int32_t speed_cdps)
+void GM6020::set_target_speed_dps(float speed_dps)
 {
-    target_.target_speed_cdps = speed_cdps;
+    target_.target_speed_dps = speed_dps;
 }

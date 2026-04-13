@@ -18,21 +18,19 @@ class GM6020
 public:
     struct State
     {
-        //放缩100倍
-        int32_t angle_cdeg;    // 角度 0.01°
-        int32_t speed_cdps;    //角速度 0.01°/s
-        int16_t current;        //电流
+        float angle_deg;        // 角度，单位：deg
+        float speed_dps;        // 角速度，单位：deg/s
+        int16_t current;        // 电机反馈电流原始值
         uint16_t encoder_raw;
     };
     struct Target
     {
-        
-        int32_t target_current;    
-        int32_t target_speed_cdps;    
+        int16_t target_current;      // 目标电流原始值
+        float target_speed_dps;      // 目标角速度，单位：deg/s
     };
 
 public:
-    GM6020(uint16_t can_id, int16_t max_current, int32_t limit_cpos, int32_t limit_cneg);
+    GM6020(uint16_t can_id, int16_t max_current, float limit_cpos, float limit_cneg);
 
     bool init();
     bool update();
@@ -40,16 +38,16 @@ public:
     Target get_target() const;
     bool check(uint32_t now_ms) const;
 
-    void set_target_current(int32_t target_current);
-    void set_target_speed_cdps(int32_t speed_cdps);
+    void set_target_current(int16_t target_current);
+    void set_target_speed_dps(float speed_dps);
 
     uint16_t get_can_id() const { return can_id_; }
 
 private:
     uint16_t can_id_;
-    int16_t max_current_;       //最大电流
-    int32_t limit_cpos_;        //正机械角度限制
-    int32_t limit_cneg_;        //负机械角度限制
+    int16_t max_current_;       // 最大电流原始值
+    float limit_cpos_;          // 正机械角度限制，单位：deg
+    float limit_cneg_;          // 负机械角度限制，单位：deg
 
     uint32_t last_rx_time_;     //毫秒
     Target target_;

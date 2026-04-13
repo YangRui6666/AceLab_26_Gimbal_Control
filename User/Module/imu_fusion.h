@@ -6,9 +6,9 @@
 #define GIMBAL_UM_IMU_FUSION_H
 
 typedef struct imu_data_t {
-    float yaw;
-    float pitch;
-    float roll;
+    float yaw;    // 单位：deg
+    float pitch;  // 单位：deg
+    float roll;   // 单位：deg
 } imu_data_t;
 
 #ifdef __cplusplus
