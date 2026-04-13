@@ -63,18 +63,18 @@
 //     can_filter.FilterActivation = ENABLE;
 //     can_filter.SlaveStartFilterBank = 14;
 
-//     if (HAL_CAN_ConfigFilter(&hcan1, &can_filter) != HAL_OK)
+//     if (HAL_CAN_ConfigFilter(&hcan2, &can_filter) != HAL_OK)
 //     {
 //         return false;
 //     }
 
 //     // 启动CAN并启用FIFO0接收中断
-//     if (HAL_CAN_Start(&hcan1) != HAL_OK)
+//     if (HAL_CAN_Start(&hcan2) != HAL_OK)
 //     {
 //         return false;
 //     }
 
-//     if (HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
+//     if (HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING) != HAL_OK)
 //     {
 //         return false;
 //     }
@@ -106,7 +106,7 @@
 //     tx_header.RTR = CAN_RTR_DATA;
 //     tx_header.DLC = dlc;
 
-//     return HAL_CAN_AddTxMessage(&hcan1, &tx_header, tx_data, &tx_mailbox) == HAL_OK;
+//     return HAL_CAN_AddTxMessage(&hcan2, &tx_header, tx_data, &tx_mailbox) == HAL_OK;
 // }
 
 // bool bsp_can_pop_rx(can_rx_msg_t *out)
@@ -265,12 +265,12 @@
 //   */
 // void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 // {
-//     if (hcan == &hcan1)
+//     if (hcan == &hcan2)
 //     {
 //         CAN_RxHeaderTypeDef rx_header;
 //         can_rx_msg_t rx_msg;
 
-//         if (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &rx_header, rx_msg.data) == HAL_OK)
+//         if (HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &rx_header, rx_msg.data) == HAL_OK)
 //         {
 //             // 只过滤需要的电机ID，减少中断处理时间
 //             if (rx_header.StdId == CAN_STDID_GIMBAL_YAW_FB ||

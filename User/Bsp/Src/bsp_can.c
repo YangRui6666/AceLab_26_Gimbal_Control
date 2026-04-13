@@ -7,7 +7,7 @@
 #include "main.h"
 #include "bsp_can.h"
 
-extern CAN_HandleTypeDef hcan1;
+extern CAN_HandleTypeDef hcan2;
 
 #define BSP_CAN_RX_SLOT_COUNT      16U
 #define BSP_CAN_MAX_DLC            8U
@@ -41,7 +41,7 @@ bool bsp_can_init(void)
 {
     CAN_FilterTypeDef filter = {0};
 
-    filter.FilterBank = 0;
+    filter.FilterBank = 14;
     filter.FilterMode = CAN_FILTERMODE_IDMASK;
     filter.FilterScale = CAN_FILTERSCALE_32BIT;
     filter.FilterIdHigh = 0;
@@ -52,15 +52,15 @@ bool bsp_can_init(void)
     filter.FilterActivation = ENABLE;
     filter.SlaveStartFilterBank = 14;
 
-    if (HAL_CAN_ConfigFilter(&hcan1, &filter) != HAL_OK) {
+    if (HAL_CAN_ConfigFilter(&hcan2, &filter) != HAL_OK) {
         return false;
     }
 
-    if (HAL_CAN_Start(&hcan1) != HAL_OK) {
+    if (HAL_CAN_Start(&hcan2) != HAL_OK) {
         return false;
     }
 
-    if (HAL_CAN_ActivateNotification(&hcan1,
+    if (HAL_CAN_ActivateNotification(&hcan2,
                                      CAN_IT_RX_FIFO0_MSG_PENDING |
                                      CAN_IT_RX_FIFO0_FULL |
                                      CAN_IT_RX_FIFO0_OVERRUN |
@@ -92,7 +92,7 @@ bool bsp_tx(uint16_t can_id, const uint8_t *data, uint8_t dlc)
         return false;
     }
 
-    if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan1) == 0U) {
+    if (HAL_CAN_GetTxMailboxesFreeLevel(&hcan2) == 0U) {
         return false;
     }
 
@@ -103,7 +103,7 @@ bool bsp_tx(uint16_t can_id, const uint8_t *data, uint8_t dlc)
     tx_header.DLC = dlc;
     tx_header.TransmitGlobalTime = DISABLE;
 
-    return HAL_CAN_AddTxMessage(&hcan1, &tx_header, data, &tx_mailbox) == HAL_OK;
+    return HAL_CAN_AddTxMessage(&hcan2, &tx_header, data, &tx_mailbox) == HAL_OK;
 }
 
 /**
@@ -147,10 +147,10 @@ static void can_ISR(void)
     uint8_t rx_data[BSP_CAN_MAX_DLC];
     uint32_t now_ms = HAL_GetTick();
 
-    while (HAL_CAN_GetRxFifoFillLevel(&hcan1, CAN_RX_FIFO0) > 0U) {
+    while (HAL_CAN_GetRxFifoFillLevel(&hcan2, CAN_RX_FIFO0) > 0U) {
         CanCacheSlot *slot;
 
-        if (HAL_CAN_GetRxMessage(&hcan1, CAN_RX_FIFO0, &rx_header, rx_data) != HAL_OK) {
+        if (HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &rx_header, rx_data) != HAL_OK) {
             break;
         }
 
@@ -200,35 +200,35 @@ bool can_check(uint16_t can_id)
 //这里补充can的中断函数定义，直接在此处定义，覆盖弱定义
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-    if (hcan == &hcan1) {
+    if (hcan == &hcan2) {
         can_ISR();
     }
 }
 
 void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan)
 {
-    if (hcan == &hcan1) {
+    if (hcan == &hcan2) {
         can_ISR();
     }
 }
 
 void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan)
 {
-    if (hcan == &hcan1) {
+    if (hcan == &hcan2) {
         can_ISR();
     }
 }
 
 void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan)
 {
-    if (hcan == &hcan1) {
+    if (hcan == &hcan2) {
         can_ISR();
     }
 }
 
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan)
 {
-    if (hcan == &hcan1) {
+    if (hcan == &hcan2) {
         can_ISR();
     }
 }

@@ -18,6 +18,7 @@ extern "C" {
 void imu_init(void);
 void imu_update(void);
 void imu_get_data(imu_data_t *imu_data);
+bool imu_check();
 
 #ifdef __cplusplus
 }

@@ -43,7 +43,9 @@ extern "C" void StartCtrlTask(void *argument)
     GM6020::Target targ_pitch = motor_manage.get_pitch_target();
 
 
-    bsp_usb_init();
+    bool b = bsp_usb_init();
+    bool a = bsp_can_init();
+    osDelay(100);
         for(;;)
         {
             /*code*/
@@ -55,10 +57,11 @@ extern "C" void StartCtrlTask(void *argument)
 
             motor_manage.update_feedback();
             motor_manage.set(text_wave(), 0.0f);
-            motor_manage.send_can_cmd();
-
+            // motor_manage.send_can_cmd();
+            bool c = can_check(0x206);
+            bool d = can_check(0x208);
             last_wake_time = xTaskGetTickCount();
-            
+            usb_send_rawf("%d\r\n",last_wake_time);
 
             vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(1));
         }
