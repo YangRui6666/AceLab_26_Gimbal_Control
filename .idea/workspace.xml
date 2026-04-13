@@ -35,21 +35,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/debugServers/ST_LINK.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/debugServers/ST_LINK.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Bsp/Inc/bsp_can.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Bsp/Inc/bsp_can.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Device/device_gm6020.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Device/device_gm6020.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Device/device_gm6020.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Device/device_gm6020.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Module/PID.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/PID.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Module/imu_fusion.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/imu_fusion.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Module/imu_fusion.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/imu_fusion.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Task/communicate_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/communicate_task.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeCache.txt" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeCache.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/CMakeFiles/clion-Debug - Debug-log.txt" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/CMakeFiles/clion-Debug - Debug-log.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Debug/Testing/Temporary/LastTest.log" beforeDir="false" afterPath="$PROJECT_DIR$/build/Debug/Testing/Temporary/LastTest.log" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -182,7 +170,7 @@
       <updated>1775718672288</updated>
       <workItem from="1775718673373" duration="8719000" />
       <workItem from="1775747627656" duration="7869000" />
-      <workItem from="1775996156898" duration="4859000" />
+      <workItem from="1775996156898" duration="6300000" />
     </task>
     <task id="LOCAL-00001" summary="搭建起来一个自己的框架">
       <option name="closed" value="true" />

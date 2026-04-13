@@ -68,6 +68,7 @@ void MotorManage::set(float yaw_target, float pitch_target)
     pitch_pid_location_.set_ki(ki_debug_pitch);
     pitch_pid_location_.set_kd(kd_debug_pitch);
     #endif
+
     auto yaw_state = yaw_.get_state();
     auto pitch_state = pitch_.get_state();
 
