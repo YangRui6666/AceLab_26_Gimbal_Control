@@ -13,15 +13,15 @@
  *
  * @param can_id    电机的CAN ID
  * @param max_current 电机允许的最大电流原始值
- * @param limit_cpos   电机正机械角度限制，单位deg
- * @param limit_cneg   电机负机械角度限制，单位deg
+ * @param limit_pos   电机正机械角度限制，单位deg
+ * @param limit_neg   电机负机械角度限制，单位deg
  */
-GM6020::GM6020(uint16_t can_id, int16_t max_current, float limit_cpos, float limit_cneg)
+GM6020::GM6020(uint16_t can_id, int16_t max_current, float limit_pos, float limit_neg)
 {
     can_id_ = can_id;
     max_current_ = max_current;
-    limit_cpos_ = limit_cpos;
-    limit_cneg_ = limit_cneg;
+    limit_pos_ = limit_pos;
+    limit_neg_ = limit_neg;
     last_rx_time_ = 0;
 
     target_.target_current = 0;

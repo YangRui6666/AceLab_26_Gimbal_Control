@@ -30,7 +30,7 @@ public:
     };
 
 public:
-    GM6020(uint16_t can_id, int16_t max_current, float limit_cpos, float limit_cneg);
+    GM6020(uint16_t can_id, int16_t max_current, float limit_pos, float limit_neg);
 
     bool init();
     bool update();
@@ -46,8 +46,8 @@ public:
 private:
     uint16_t can_id_;
     int16_t max_current_;       // 最大电流原始值
-    float limit_cpos_;          // 正机械角度限制，单位：deg
-    float limit_cneg_;          // 负机械角度限制，单位：deg
+    float limit_pos_;          // 正机械角度限制，单位：deg
+    float limit_neg_;          // 负机械角度限制，单位：deg
 
     uint32_t last_rx_time_;     //毫秒
     Target target_;
