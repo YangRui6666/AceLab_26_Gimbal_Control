@@ -58,7 +58,7 @@ extern "C" void StartCtrlTask(void *argument)
             motor_manage.send_can_cmd();
 
             last_wake_time = xTaskGetTickCount();
-            usb_send_raw("1");
+            usb_send_rawf("%d\r\n",last_wake_time);
 
             vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(1));
         }

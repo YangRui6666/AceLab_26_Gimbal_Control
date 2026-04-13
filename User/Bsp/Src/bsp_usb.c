@@ -1,6 +1,8 @@
 #include "bsp_usb.h"
 
+#include <stdarg.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "stm32f4xx.h"
@@ -516,4 +518,27 @@ bool usb_send_raw(const char *str)
     }
 
     return usb_transmit_bytes((const uint8_t *)str, (uint16_t)len);
+}
+
+bool usb_send_rawf(const char *fmt, ...)
+{
+    va_list args;
+    int written;
+    char text[USB_TX_BUFFER_SIZE];
+
+    if (fmt == NULL)
+    {
+        return false;
+    }
+
+    va_start(args, fmt);
+    written = vsnprintf(text, sizeof(text), fmt, args);
+    va_end(args);
+
+    if ((written < 0) || ((size_t)written >= sizeof(text)))
+    {
+        return false;
+    }
+
+    return usb_send_raw(text);
 }
