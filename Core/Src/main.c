@@ -59,7 +59,7 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t CtrlTaskHandle;
 const osThreadAttr_t CtrlTask_attributes = {
   .name = "CtrlTask",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityRealtime,
 };
 /* Definitions for CommunicateTask */
