@@ -42,6 +42,7 @@ add_executable(${CMAKE_PROJECT_NAME}
         User/Module/PID.cpp
         User/Module/PID.h
         User/Task/ctrl_task.cpp
+        User/Task/ctrl_msg_queue.c
         User/Task/communicate_task.cpp
         User/Module/MotorManage.h
         User/Module/imu_fusion.cpp)

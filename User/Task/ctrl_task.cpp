@@ -1,6 +1,7 @@
 //
 // Created by CORE on 2026/4/9.
 //
+#include "bsp_usb.h"
 #include "cmsis_os2.h"
 #include "FreeRTOS.h"
 #include "task.h"
@@ -42,7 +43,7 @@ extern "C" void StartCtrlTask(void *argument)
     GM6020::Target targ_pitch = motor_manage.get_pitch_target();
 
 
-
+    bsp_usb_init();
         for(;;)
         {
             /*code*/
@@ -56,8 +57,8 @@ extern "C" void StartCtrlTask(void *argument)
             motor_manage.set(text_wave(), 0.0f);
             motor_manage.send_can_cmd();
 
-
-
+            last_wake_time = xTaskGetTickCount();
+            usb_send_raw("1");
 
             vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(1));
         }

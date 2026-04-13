@@ -22,6 +22,8 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
+#include "bsp_usb.h"
+#include "cmsis_os2.h"
 
 /* USER CODE END INCLUDE */
 
@@ -109,6 +111,7 @@ uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
 /* USER CODE BEGIN EXPORTED_VARIABLES */
+extern osSemaphoreId_t comm_semHandle;
 
 /* USER CODE END EXPORTED_VARIABLES */
 
@@ -261,6 +264,15 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
+  if ((Buf != NULL) && (Len != NULL) && (*Len > 0U))
+  {
+    bsp_usb_rx_push(Buf, (uint16_t)(*Len));
+    if (comm_semHandle != NULL)
+    {
+      osSemaphoreRelease(comm_semHandle);
+    }
+  }
+
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   return (USBD_OK);
@@ -282,6 +294,11 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
 {
   uint8_t result = USBD_OK;
   /* USER CODE BEGIN 7 */
+  if ((Buf == NULL) || (Len == 0U) || (hUsbDeviceFS.pClassData == NULL))
+  {
+    return USBD_FAIL;
+  }
+
   USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
   if (hcdc->TxState != 0){
     return USBD_BUSY;
