@@ -23,6 +23,9 @@ GM6020::GM6020(uint16_t can_id, int16_t max_current, int32_t limit_cpos, int32_t
     limit_cpos_ = limit_cpos;
     limit_cneg_ = limit_cneg;
     last_rx_time_ = 0;
+
+    target_.target_current = 0;
+    target_.target_speed_cdps = 0;
 }
 
 /**
@@ -139,4 +142,25 @@ bool GM6020::check(uint32_t now_ms) const
     }
 
     return false;
+}
+
+void GM6020::set_target_current(int32_t target_current)
+{
+    if (target_current > max_current_)
+    {
+        target_.target_current = max_current_;
+    }
+    else if (target_current < -max_current_)
+    {
+        target_.target_current = -max_current_;
+    }
+    else
+    {
+        target_.target_current = target_current;
+    }
+}
+
+void GM6020::set_target_speed_cdps(int32_t speed_cdps)
+{
+    target_.target_speed_cdps = speed_cdps;
 }

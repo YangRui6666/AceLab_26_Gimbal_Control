@@ -7,6 +7,8 @@
 #include "PID.h"
 #include "MotorManage.h"
 
+#include "cmsis_os2.h"
+
 MotorManage::MotorManage()
 : yaw_(0x206, 1000, 1000, -1000),
   pitch_(0x208, 1000, 1000, -1000)
@@ -71,6 +73,8 @@ void MotorManage::set(float yaw_target, float pitch_target)
 
     auto yaw_state = yaw_.get_state();
     auto pitch_state = pitch_.get_state();
+
+    uint32_t ticks = osKernelGetTickCount();
 
 
 }

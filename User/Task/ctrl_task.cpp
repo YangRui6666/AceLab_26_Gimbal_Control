@@ -40,11 +40,9 @@ extern "C" void StartCtrlTask(void *argument)
 
     GM6020::Target targ_yaw = motor_manage.get_yaw_target();
     GM6020::Target targ_pitch = motor_manage.get_pitch_target();
-    targ_pitch.target_current = -1;
-    targ_pitch.target_speed_cdps = -1;
-    targ_yaw.target_current = -1;
-    targ_yaw.target_speed_cdps = -1;
 
+
+    bsp_can_init();
         for(;;)
         {
             /*code*/

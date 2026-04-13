@@ -40,6 +40,9 @@ public:
     Target get_target() const;
     bool check(uint32_t now_ms) const;
 
+    void set_target_current(int32_t target_current);
+    void set_target_speed_cdps(int32_t speed_cdps);
+
     uint16_t get_can_id() const { return can_id_; }
 
 private:

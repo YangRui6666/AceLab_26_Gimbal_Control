@@ -18,6 +18,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+
+#include "bsp_can.h"
 #include "cmsis_os.h"
 #include "usb_device.h"
 
@@ -130,6 +132,8 @@ int main(void)
   MX_CAN1_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
+
+  bsp_can_init();
 
   /* USER CODE END 2 */
 
