@@ -20,13 +20,15 @@ by the firmware:
 from __future__ import annotations
 
 import argparse
+import json
 import math
+import os
 import struct
 import sys
 import time
 import shutil
 from dataclasses import dataclass, field
-from typing import List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 
 SOF_0 = 0xAA
@@ -120,6 +122,31 @@ def slew_towards(current: float, target: float, max_step: float) -> float:
     return current - max_step
 
 
+def damped_step(
+    current: float,
+    velocity: float,
+    target: float,
+    omega: float,
+    dt_s: float,
+    snap_epsilon: float = 1e-3,
+) -> Tuple[float, float]:
+    if dt_s <= 0.0 or omega <= 0.0:
+        return target, 0.0
+
+    # Stable critically-damped discretization adapted from the common SmoothDamp formulation.
+    x = omega * dt_s
+    exp = 1.0 / (1.0 + x + 0.48 * x * x + 0.235 * x * x * x)
+    delta = current - target
+    temp = (velocity + omega * delta) * dt_s
+    new_velocity = (velocity - omega * temp) * exp
+    new_value = target + (delta + temp) * exp
+
+    if abs(new_value - target) <= snap_epsilon and abs(new_velocity) <= snap_epsilon:
+        return target, 0.0
+
+    return new_value, new_velocity
+
+
 @dataclass
 class Config:
     port: Optional[str]
@@ -132,6 +159,7 @@ class Config:
     abs_range_deg: float
     right_curve_exp: float
     abs_slew_rate_deg_s: float
+    abs_return_rate_deg_s: float
     abs_center_yaw_deg: float
     abs_center_pitch_deg: float
     yaw_scale: float
@@ -140,6 +168,11 @@ class Config:
     left_invert_y: bool
     right_invert_y: bool
     status_period_s: float
+    auto_calibrate: bool
+    reset_calibration: bool
+    calibration_path: str
+    calibration_activation: float
+    calibration_min: float
     axis_left_x: int
     axis_left_y: int
     axis_right_x: int
@@ -152,6 +185,231 @@ class Config:
     button_start: int
     dry_run: bool
     scan_interval_s: float
+
+
+@dataclass
+class AxisCalibration:
+    positive: float = 0.0
+    negative: float = 0.0
+
+    def observe(self, value: float) -> bool:
+        changed = False
+        if value > 0.0 and value > self.positive:
+            self.positive = value
+            changed = True
+        elif value < 0.0 and -value > self.negative:
+            self.negative = -value
+            changed = True
+        return changed
+
+    def normalize(self, value: float, activation: float, minimum: float) -> float:
+        if value > 0.0:
+            observed = self.positive
+        elif value < 0.0:
+            observed = self.negative
+        else:
+            return 0.0
+
+        if observed >= activation:
+            scale = max(observed, minimum)
+        else:
+            scale = 1.0
+
+        return clamp(value / scale, -1.0, 1.0)
+
+    def to_dict(self) -> Dict[str, float]:
+        return {
+            "positive": self.positive,
+            "negative": self.negative,
+        }
+
+    @classmethod
+    def from_dict(cls, data: object) -> "AxisCalibration":
+        if not isinstance(data, dict):
+            return cls()
+        return cls(
+            positive=float(data.get("positive", 0.0) or 0.0),
+            negative=float(data.get("negative", 0.0) or 0.0),
+        )
+
+
+@dataclass
+class CornerCalibration:
+    x: float = 0.0
+    y: float = 0.0
+
+    def observe(self, x_value: float, y_value: float) -> bool:
+        changed = False
+        abs_x = abs(x_value)
+        abs_y = abs(y_value)
+        if abs_x > self.x:
+            self.x = abs_x
+            changed = True
+        if abs_y > self.y:
+            self.y = abs_y
+            changed = True
+        return changed
+
+    def to_dict(self) -> Dict[str, float]:
+        return {
+            "x": self.x,
+            "y": self.y,
+        }
+
+    @classmethod
+    def from_dict(cls, data: object) -> "CornerCalibration":
+        if not isinstance(data, dict):
+            return cls()
+        return cls(
+            x=float(data.get("x", 0.0) or 0.0),
+            y=float(data.get("y", 0.0) or 0.0),
+        )
+
+
+class CalibrationStore:
+    def __init__(self, config: Config) -> None:
+        self._config = config
+        self._axes: Dict[str, AxisCalibration] = {
+            "left_x": AxisCalibration(),
+            "left_y": AxisCalibration(),
+            "right_x": AxisCalibration(),
+            "right_y": AxisCalibration(),
+        }
+        self._corners: Dict[str, CornerCalibration] = {
+            "left_ul": CornerCalibration(),
+            "left_ur": CornerCalibration(),
+            "left_dl": CornerCalibration(),
+            "left_dr": CornerCalibration(),
+            "right_ul": CornerCalibration(),
+            "right_ur": CornerCalibration(),
+            "right_dl": CornerCalibration(),
+            "right_dr": CornerCalibration(),
+        }
+        self._dirty = False
+        self._last_save_s = 0.0
+
+    def load(self) -> None:
+        if self._config.reset_calibration:
+            return
+        if not os.path.exists(self._config.calibration_path):
+            return
+
+        try:
+            with open(self._config.calibration_path, "r", encoding="utf-8") as fp:
+                payload = json.load(fp)
+        except Exception:
+            return
+
+        if not isinstance(payload, dict):
+            return
+
+        axes = payload.get("axes", {})
+        if not isinstance(axes, dict):
+            return
+
+        for name in self._axes:
+            self._axes[name] = AxisCalibration.from_dict(axes.get(name))
+
+        corners = payload.get("corners", {})
+        if isinstance(corners, dict):
+            for name in self._corners:
+                self._corners[name] = CornerCalibration.from_dict(corners.get(name))
+
+    def observe(self, name: str, value: float) -> None:
+        if not self._config.auto_calibrate:
+            return
+        axis = self._axes[name]
+        if axis.observe(value):
+            self._dirty = True
+
+    def observe_pair(self, stick: str, x_value: float, y_value: float) -> None:
+        if not self._config.auto_calibrate:
+            return
+        if abs(x_value) < self._config.calibration_activation or abs(y_value) < self._config.calibration_activation:
+            return
+
+        key = self._corner_key(stick, x_value, y_value)
+        if self._corners[key].observe(x_value, y_value):
+            self._dirty = True
+
+    def normalized(self, name: str, value: float) -> float:
+        return self._axes[name].normalize(
+            value,
+            activation=self._config.calibration_activation,
+            minimum=self._config.calibration_min,
+        )
+
+    def normalized_pair(self, stick: str, x_name: str, y_name: str, x_value: float, y_value: float) -> Tuple[float, float]:
+        self.observe(x_name, x_value)
+        self.observe(y_name, y_value)
+        self.observe_pair(stick, x_value, y_value)
+
+        x_scale = self._axis_scale(x_name, x_value)
+        y_scale = self._axis_scale(y_name, y_value)
+
+        if abs(x_value) >= self._config.calibration_activation and abs(y_value) >= self._config.calibration_activation:
+            corner = self._corners[self._corner_key(stick, x_value, y_value)]
+            if corner.x >= self._config.calibration_activation:
+                x_scale = max(corner.x, self._config.calibration_min)
+            if corner.y >= self._config.calibration_activation:
+                y_scale = max(corner.y, self._config.calibration_min)
+
+        return (
+            clamp(x_value / x_scale, -1.0, 1.0),
+            clamp(y_value / y_scale, -1.0, 1.0),
+        )
+
+    def summary(self, name: str) -> AxisCalibration:
+        return self._axes[name]
+
+    def corner_summary(self, name: str) -> CornerCalibration:
+        return self._corners[name]
+
+    def maybe_save(self, now_s: float) -> None:
+        if not self._dirty:
+            return
+        if now_s - self._last_save_s < 1.0:
+            return
+        self.save(now_s)
+
+    def save(self, now_s: Optional[float] = None) -> None:
+        if not self._dirty and now_s is not None:
+            self._last_save_s = now_s
+            return
+
+        directory = os.path.dirname(self._config.calibration_path)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+
+        payload = {
+            "axes": {name: axis.to_dict() for name, axis in self._axes.items()},
+            "corners": {name: corner.to_dict() for name, corner in self._corners.items()},
+        }
+        with open(self._config.calibration_path, "w", encoding="utf-8") as fp:
+            json.dump(payload, fp, indent=2, sort_keys=True)
+            fp.write("\n")
+
+        self._dirty = False
+        self._last_save_s = time.monotonic() if now_s is None else now_s
+
+    def _axis_scale(self, name: str, value: float) -> float:
+        axis = self._axes[name]
+        if value > 0.0:
+            observed = axis.positive
+        elif value < 0.0:
+            observed = axis.negative
+        else:
+            return 1.0
+
+        if observed >= self._config.calibration_activation:
+            return max(observed, self._config.calibration_min)
+        return 1.0
+
+    @staticmethod
+    def _corner_key(stick: str, x_value: float, y_value: float) -> str:
+        horizontal = "l" if x_value < 0.0 else "r"
+        vertical = "u" if y_value < 0.0 else "d"
+        return f"{stick}_{vertical}{horizontal}"
 
 
 @dataclass
@@ -384,11 +642,16 @@ class GamepadReader:
 class GimbalController:
     def __init__(self, config: Config) -> None:
         self._config = config
+        self._calibration = CalibrationStore(config)
+        self._calibration.load()
         self._last_buttons = ButtonState()
         self._virtual_yaw_deg = config.abs_center_yaw_deg
         self._virtual_pitch_deg = config.abs_center_pitch_deg
         self._right_target_yaw_deg = config.abs_center_yaw_deg
         self._right_target_pitch_deg = config.abs_center_pitch_deg
+        self._right_target_yaw_vel = 0.0
+        self._right_target_pitch_vel = 0.0
+        self._right_returning_to_center = False
         self._tx_enabled_sent = False
         self._last_status_print = 0.0
         self._last_status_len = 0
@@ -397,22 +660,90 @@ class GimbalController:
     def _rising(now: bool, prev: bool) -> bool:
         return now and not prev
 
+    def _normalized_pair(
+        self,
+        stick: str,
+        x_name: str,
+        y_name: str,
+        raw_x: float,
+        raw_y: float,
+        invert_x: bool,
+        invert_y: bool,
+    ) -> Tuple[float, float]:
+        x_value = -raw_x if invert_x else raw_x
+        y_value = -raw_y if invert_y else raw_y
+        x_norm, y_norm = self._calibration.normalized_pair(stick, x_name, y_name, x_value, y_value)
+        return (
+            apply_deadzone(x_norm, self._config.deadzone),
+            apply_deadzone(y_norm, self._config.deadzone),
+        )
+
     def _compute_left_offset(self, sample: JoystickSample) -> Tuple[float, float]:
-        left_x = axis_to_float(sample.left_x, self._config.deadzone, invert=self._config.invert_yaw)
-        left_y = axis_to_float(sample.left_y, self._config.deadzone, invert=self._config.left_invert_y)
+        left_x, left_y = self._normalized_pair(
+            "left",
+            "left_x",
+            "left_y",
+            sample.left_x,
+            sample.left_y,
+            invert_x=self._config.invert_yaw,
+            invert_y=self._config.left_invert_y,
+        )
         offset_yaw = left_x * self._config.left_abs_range_deg * self._config.yaw_scale
         offset_pitch = left_y * self._config.left_abs_range_deg * self._config.pitch_scale
         return offset_yaw, offset_pitch
 
     def _update_right_target(self, sample: JoystickSample, dt_s: float) -> Tuple[float, float]:
+        right_x, right_y = self._normalized_pair(
+            "right",
+            "right_x",
+            "right_y",
+            sample.right_x,
+            sample.right_y,
+            invert_x=self._config.invert_yaw,
+            invert_y=self._config.right_invert_y,
+        )
         yaw_axis = apply_expo(
-            axis_to_float(sample.right_x, self._config.deadzone, invert=self._config.invert_yaw),
+            right_x,
             self._config.right_curve_exp,
         )
         pitch_axis = apply_expo(
-            axis_to_float(sample.right_y, self._config.deadzone, invert=self._config.right_invert_y),
+            right_y,
             self._config.right_curve_exp,
         )
+
+        if abs(yaw_axis) > 1e-4 or abs(pitch_axis) > 1e-4:
+            self._right_returning_to_center = False
+            self._right_target_yaw_vel = 0.0
+            self._right_target_pitch_vel = 0.0
+
+        if self._right_returning_to_center:
+            self._right_target_yaw_deg, self._right_target_yaw_vel = damped_step(
+                self._right_target_yaw_deg,
+                self._right_target_yaw_vel,
+                self._config.abs_center_yaw_deg,
+                self._config.abs_return_rate_deg_s * self._config.yaw_scale,
+                dt_s,
+            )
+            self._right_target_pitch_deg, self._right_target_pitch_vel = damped_step(
+                self._right_target_pitch_deg,
+                self._right_target_pitch_vel,
+                self._config.abs_center_pitch_deg,
+                self._config.abs_return_rate_deg_s * self._config.pitch_scale,
+                dt_s,
+            )
+
+            if (
+                abs(self._right_target_yaw_deg - self._config.abs_center_yaw_deg) <= 1e-3
+                and abs(self._right_target_pitch_deg - self._config.abs_center_pitch_deg) <= 1e-3
+                and abs(self._right_target_yaw_vel) <= 1e-3
+                and abs(self._right_target_pitch_vel) <= 1e-3
+            ):
+                self._right_returning_to_center = False
+                self._right_target_yaw_vel = 0.0
+                self._right_target_pitch_vel = 0.0
+
+            return self._right_target_yaw_deg, self._right_target_pitch_deg
+
         self._right_target_yaw_deg = clamp(
             self._right_target_yaw_deg + yaw_axis * self._config.abs_slew_rate_deg_s * dt_s * self._config.yaw_scale,
             -self._config.abs_range_deg,
@@ -445,6 +776,11 @@ class GimbalController:
         if self._rising(sample.buttons.x, self._last_buttons.x):
             frames.append(build_frame(CMD_EXIT_LOCK))
 
+        if self._rising(sample.buttons.rb, self._last_buttons.rb):
+            self._right_returning_to_center = True
+            self._right_target_yaw_vel = 0.0
+            self._right_target_pitch_vel = 0.0
+
         self._right_target_yaw_deg, self._right_target_pitch_deg = self._update_right_target(sample, dt_s)
 
         left_offset_yaw, left_offset_pitch = self._compute_left_offset(sample)
@@ -467,6 +803,7 @@ class GimbalController:
         return frames
 
     def maybe_print_status(self, sample: Optional[JoystickSample], serial_port: Optional[str], now_s: float) -> None:
+        self._calibration.maybe_save(now_s)
         if now_s - self._last_status_print < self._config.status_period_s:
             return
         self._last_status_print = now_s
@@ -481,13 +818,18 @@ class GimbalController:
             return
 
         left_offset_yaw, left_offset_pitch = self._compute_left_offset(sample)
+        left_x_cal = self._calibration.summary("left_x")
+        left_y_cal = self._calibration.summary("left_y")
+        left_ul_cal = self._calibration.corner_summary("left_ul")
         line = (
             f"USB:{'OK' if serial_port else 'NO'} "
             f"LX:{sample.left_x:+.2f} LY:{sample.left_y:+.2f} "
             f"RX:{sample.right_x:+.2f} RY:{sample.right_y:+.2f} "
             f"LT:{left_offset_yaw:+.1f}/{left_offset_pitch:+.1f} "
             f"RT:{self._right_target_yaw_deg:+.1f}/{self._right_target_pitch_deg:+.1f} "
-            f"VT:{self._virtual_yaw_deg:+.1f}/{self._virtual_pitch_deg:+.1f}"
+            f"VT:{self._virtual_yaw_deg:+.1f}/{self._virtual_pitch_deg:+.1f} "
+            f"CAL:{left_x_cal.negative:.2f}/{left_x_cal.positive:.2f}|{left_y_cal.negative:.2f}/{left_y_cal.positive:.2f} "
+            f"UL:{left_ul_cal.x:.2f}/{left_ul_cal.y:.2f}"
         )
         self._write_status_line(line)
 
@@ -507,6 +849,9 @@ class GimbalController:
         timestamp_ms = int(time.monotonic() * 1000.0) & 0xFFFFFFFF
         return self._handle_commands(sample, timestamp_ms, dt_s)
 
+    def save_calibration(self) -> None:
+        self._calibration.save()
+
 
 def parse_args(argv: Sequence[str]) -> Config:
     parser = argparse.ArgumentParser(description="Xbox gamepad control for the gimbal firmware (Linux + pygame + pyserial).")
@@ -520,6 +865,7 @@ def parse_args(argv: Sequence[str]) -> Config:
     parser.add_argument("--abs-range", type=float, default=45.0, help="Right stick absolute range in degrees")
     parser.add_argument("--right-curve-exp", type=float, default=1.8, help="Right stick expo curve exponent")
     parser.add_argument("--abs-slew-rate", type=float, default=60.0, help="Right stick absolute slew rate in deg/s")
+    parser.add_argument("--abs-return-rate", type=float, default=45.0, help="Right target second-order damping return rate")
     parser.add_argument("--abs-center-yaw", type=float, default=0.0, help="Right stick absolute center for yaw")
     parser.add_argument("--abs-center-pitch", type=float, default=0.0, help="Right stick absolute center for pitch")
     parser.add_argument("--yaw-scale", type=float, default=1.0, help="Global yaw gain")
@@ -530,6 +876,12 @@ def parse_args(argv: Sequence[str]) -> Config:
     parser.add_argument("--right-invert-y", dest="right_invert_y", action="store_true", default=False, help="Invert right stick Y axis")
     parser.add_argument("--no-right-invert-y", dest="right_invert_y", action="store_false", help="Do not invert right stick Y axis")
     parser.add_argument("--status-period", type=float, default=0.02, help="Status print interval in seconds")
+    parser.add_argument("--auto-calibrate", dest="auto_calibrate", action="store_true", default=True, help="Automatically learn stick axis limits")
+    parser.add_argument("--no-auto-calibrate", dest="auto_calibrate", action="store_false", help="Disable automatic stick calibration")
+    parser.add_argument("--reset-calibration", action="store_true", help="Ignore stored calibration and relearn from scratch")
+    parser.add_argument("--calibration-path", default=os.path.join("tools", "gamepad_calibration.json"), help="Calibration JSON path")
+    parser.add_argument("--calibration-activation", type=float, default=0.55, help="Observed magnitude required before auto calibration becomes active")
+    parser.add_argument("--calibration-min", type=float, default=0.35, help="Lower bound for learned calibration denominator")
     parser.add_argument("--axis-left-x", type=int, default=0)
     parser.add_argument("--axis-left-y", type=int, default=1)
     parser.add_argument("--axis-right-x", type=int, default=2)
@@ -555,6 +907,7 @@ def parse_args(argv: Sequence[str]) -> Config:
         abs_range_deg=args.abs_range,
         right_curve_exp=args.right_curve_exp,
         abs_slew_rate_deg_s=args.abs_slew_rate,
+        abs_return_rate_deg_s=args.abs_return_rate,
         abs_center_yaw_deg=args.abs_center_yaw,
         abs_center_pitch_deg=args.abs_center_pitch,
         yaw_scale=args.yaw_scale,
@@ -563,6 +916,11 @@ def parse_args(argv: Sequence[str]) -> Config:
         left_invert_y=args.left_invert_y,
         right_invert_y=args.right_invert_y,
         status_period_s=args.status_period,
+        auto_calibrate=args.auto_calibrate,
+        reset_calibration=args.reset_calibration,
+        calibration_path=args.calibration_path,
+        calibration_activation=args.calibration_activation,
+        calibration_min=args.calibration_min,
         axis_left_x=args.axis_left_x,
         axis_left_y=args.axis_left_y,
         axis_right_x=args.axis_right_x,
@@ -632,6 +990,7 @@ def main(argv: Sequence[str]) -> int:
     except KeyboardInterrupt:
         print("\n[exit] interrupted")
     finally:
+        controller.save_calibration()
         if controller._last_status_len:
             sys.stdout.write("\n")
             sys.stdout.flush()
