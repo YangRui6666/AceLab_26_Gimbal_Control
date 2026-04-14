@@ -11,6 +11,14 @@ namespace
 
 // Temporary debug bypass. Set to 0 to restore online checks.
 #define TEMP_DISABLE_MOTOR_ONLINE_CHECK 1
+constexpr uint32_t k_inner_loop_hz = 1000U;
+constexpr uint32_t k_outer_loop_hz = 200U;
+static_assert(k_outer_loop_hz > 0U, "k_outer_loop_hz must be greater than 0");
+static_assert((k_inner_loop_hz % k_outer_loop_hz) == 0U, "k_inner_loop_hz must be divisible by k_outer_loop_hz");
+constexpr uint8_t k_outer_loop_divider = static_cast<uint8_t>(k_inner_loop_hz / k_outer_loop_hz);
+constexpr float k_inner_dt_default_s = 1.0f / (float)k_inner_loop_hz;
+constexpr float k_outer_dt_default_s = 1.0f / (float)k_outer_loop_hz;
+constexpr float k_tick_to_s = 0.001f;
 constexpr int16_t k_current_cmd_limit = 10000;
 constexpr float k_yaw_limit_min_deg = -60.0f;
 constexpr float k_yaw_limit_max_deg = 60.0f;
@@ -38,6 +46,25 @@ int16_t clamp_current_cmd(float value, int16_t limit)
     return static_cast<int16_t>(value - 0.5f);
 }
 
+float compute_measured_dt_s(uint32_t now_tick_ms, uint32_t &last_tick_ms, float default_dt_s)
+{
+    if (last_tick_ms == 0U)
+    {
+        last_tick_ms = now_tick_ms;
+        return default_dt_s;
+    }
+
+    const uint32_t delta_tick_ms = now_tick_ms - last_tick_ms;
+    last_tick_ms = now_tick_ms;
+
+    if (delta_tick_ms == 0U)
+    {
+        return default_dt_s;
+    }
+
+    return (float)delta_tick_ms * k_tick_to_s;
+}
+
 } // namespace
 
 #ifdef DDBUG_DATA_ON
@@ -48,7 +75,12 @@ MotorManage::MotorManage()
     : yaw_(0x206, k_current_cmd_limit, k_yaw_limit_max_deg, k_yaw_limit_min_deg),
       pitch_(0x208, k_current_cmd_limit, k_pitch_limit_max_deg, k_pitch_limit_min_deg),
       yaw_zero_ready_(false),
-      yaw_boot_zero_deg_(0.0f)
+      yaw_boot_zero_deg_(0.0f),
+      outer_loop_divider_count_(0U),
+      last_inner_tick_ms_(0U),
+      last_outer_tick_ms_(0U),
+      yaw_speed_target_cache_(0.0f),
+      pitch_speed_target_cache_(0.0f)
 {
     yaw_.init();
     pitch_.init();
@@ -120,19 +152,21 @@ void MotorManage::set(float yaw_target, float pitch_target)
     const auto yaw_state = yaw_.get_state();
     const auto pitch_state = pitch_.get_state();
 
-    static uint32_t last_ticks = 0U;
     const uint32_t ticks = osKernelGetTickCount();
-    float dt_s = 0.001f;
+    const float inner_dt_s = compute_measured_dt_s(ticks, last_inner_tick_ms_, k_inner_dt_default_s);
 
-    if (last_ticks != 0U)
+    const bool run_outer_loop = (outer_loop_divider_count_ == 0U);
+    outer_loop_divider_count_++;
+    if (outer_loop_divider_count_ >= k_outer_loop_divider)
     {
-        const uint32_t delta_ticks = ticks - last_ticks;
-        if (delta_ticks != 0U)
-        {
-            dt_s = (float)delta_ticks / 1000.0f;
-        }
+        outer_loop_divider_count_ = 0U;
     }
-    last_ticks = ticks;
+
+    float outer_dt_s = k_outer_dt_default_s;
+    if (run_outer_loop)
+    {
+        outer_dt_s = compute_measured_dt_s(ticks, last_outer_tick_ms_, k_outer_dt_default_s);
+    }
 
     if (!yaw_zero_ready_ && yaw_.has_feedback())
     {
@@ -140,6 +174,7 @@ void MotorManage::set(float yaw_target, float pitch_target)
         yaw_zero_ready_ = true;
         yaw_pid_location_.reset();
         yaw_pid_speed_.reset();
+        yaw_speed_target_cache_ = 0.0f;
     }
 
 #if TEMP_DISABLE_MOTOR_ONLINE_CHECK
@@ -154,8 +189,8 @@ void MotorManage::set(float yaw_target, float pitch_target)
     const float yaw_meas_joint_deg = (yaw_zero_ready_ && yaw_.has_feedback()) ? yaw_motor_to_joint_deg(yaw_state.angle_deg) : 0.0f;
     const float pitch_meas_joint_deg = pitch_.has_feedback() ? pitch_motor_to_joint_deg(pitch_state.angle_deg) : 0.0f;
 
-    float yaw_speed_target = 0.0f;
-    float pitch_speed_target = 0.0f;
+    float yaw_speed_target = yaw_speed_target_cache_;
+    float pitch_speed_target = pitch_speed_target_cache_;
     float yaw_current_target = 0.0f;
     float pitch_current_target = 0.0f;
     int16_t yaw_current_cmd = 0;
@@ -163,12 +198,19 @@ void MotorManage::set(float yaw_target, float pitch_target)
 
     if (!yaw_zero_ready_ || !yaw_online)
     {
+        yaw_speed_target_cache_ = 0.0f;
+        yaw_speed_target = 0.0f;
         hold_yaw_axis();
     }
     else
     {
-        yaw_speed_target = yaw_pid_location_.calculate(yaw_target_clamped, yaw_meas_joint_deg, dt_s);
-        yaw_current_target = yaw_pid_speed_.calculate(yaw_speed_target, yaw_state.speed_dps, dt_s);
+        if (run_outer_loop)
+        {
+            yaw_speed_target_cache_ = yaw_pid_location_.calculate(yaw_target_clamped, yaw_meas_joint_deg, outer_dt_s);
+        }
+
+        yaw_speed_target = yaw_speed_target_cache_;
+        yaw_current_target = yaw_pid_speed_.calculate(yaw_speed_target, yaw_state.speed_dps, inner_dt_s);
         yaw_current_cmd = clamp_current_cmd(yaw_current_target, k_current_cmd_limit);
         yaw_.set_target_speed_dps(yaw_speed_target);
         yaw_.set_target_current(yaw_current_cmd);
@@ -176,12 +218,19 @@ void MotorManage::set(float yaw_target, float pitch_target)
 
     if (!pitch_online)
     {
+        pitch_speed_target_cache_ = 0.0f;
+        pitch_speed_target = 0.0f;
         hold_pitch_axis();
     }
     else
     {
-        pitch_speed_target = pitch_pid_location_.calculate(pitch_target_clamped, pitch_meas_joint_deg, dt_s);
-        pitch_current_target = pitch_pid_speed_.calculate(pitch_speed_target, pitch_state.speed_dps, dt_s);
+        if (run_outer_loop)
+        {
+            pitch_speed_target_cache_ = pitch_pid_location_.calculate(pitch_target_clamped, pitch_meas_joint_deg, outer_dt_s);
+        }
+
+        pitch_speed_target = pitch_speed_target_cache_;
+        pitch_current_target = pitch_pid_speed_.calculate(pitch_speed_target, pitch_state.speed_dps, inner_dt_s);
         pitch_current_cmd = clamp_current_cmd(pitch_current_target, k_current_cmd_limit);
         pitch_.set_target_speed_dps(pitch_speed_target);
         pitch_.set_target_current(pitch_current_cmd);
@@ -202,7 +251,7 @@ void MotorManage::set(float yaw_target, float pitch_target)
     g_motor_manage_debug.pitch_speed_meas_dps = pitch_state.speed_dps;
     g_motor_manage_debug.yaw_current_meas = yaw_state.current;
     g_motor_manage_debug.pitch_current_meas = pitch_state.current;
-    g_motor_manage_debug.dt_s = dt_s;
+    g_motor_manage_debug.dt_s = inner_dt_s;
     g_motor_manage_debug.tick_ms = ticks;
 #endif
 }
@@ -255,6 +304,7 @@ void MotorManage::hold_yaw_axis()
 {
     yaw_pid_location_.reset();
     yaw_pid_speed_.reset();
+    yaw_speed_target_cache_ = 0.0f;
     yaw_.set_target_speed_dps(0.0f);
     yaw_.set_target_current(0);
 }
@@ -263,6 +313,7 @@ void MotorManage::hold_pitch_axis()
 {
     pitch_pid_location_.reset();
     pitch_pid_speed_.reset();
+    pitch_speed_target_cache_ = 0.0f;
     pitch_.set_target_speed_dps(0.0f);
     pitch_.set_target_current(0);
 }

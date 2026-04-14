@@ -70,6 +70,11 @@ private:
 
     bool yaw_zero_ready_;
     float yaw_boot_zero_deg_;
+    uint8_t outer_loop_divider_count_;
+    uint32_t last_inner_tick_ms_;
+    uint32_t last_outer_tick_ms_;
+    float yaw_speed_target_cache_;
+    float pitch_speed_target_cache_;
 };
 
 #endif // GIMBAL_UM_MOTORMANAGE_H
