@@ -69,6 +69,13 @@ const osThreadAttr_t CommunicateTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
+/* Definitions for dddebugTask */
+osThreadId_t dddebugTaskHandle;
+const osThreadAttr_t dddebugTask_attributes = {
+  .name = "dddebugTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityRealtime,
+};
 /* Definitions for comm_sem */
 osSemaphoreId_t comm_semHandle;
 const osSemaphoreAttr_t comm_sem_attributes = {
@@ -87,6 +94,7 @@ static void MX_CAN2_Init(void);
 void StartDefaultTask(void *argument);
 void StartCtrlTask(void *argument);
 void StartCommunicateTask(void *argument);
+void StartdddebugTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -167,6 +175,9 @@ int main(void)
 
   /* creation of CommunicateTask */
   CommunicateTaskHandle = osThreadNew(StartCommunicateTask, NULL, &CommunicateTask_attributes);
+
+  /* creation of dddebugTask */
+  dddebugTaskHandle = osThreadNew(StartdddebugTask, NULL, &dddebugTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -435,6 +446,24 @@ __weak void StartCommunicateTask(void *argument)
     osDelay(1);
   }
   /* USER CODE END StartCommunicateTask */
+}
+
+/* USER CODE BEGIN Header_StartdddebugTask */
+/**
+* @brief Function implementing the dddebugTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartdddebugTask */
+__weak void StartdddebugTask(void *argument)
+{
+  /* USER CODE BEGIN StartdddebugTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartdddebugTask */
 }
 
 /**

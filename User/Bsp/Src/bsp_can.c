@@ -196,8 +196,7 @@ bool can_check(uint16_t can_id)
     return (HAL_GetTick() - slot->last_seen_ms) < BSP_CAN_COMM_TIMEOUT_MS;
 }
 
-//TODO:
-//这里补充can的中断函数定义，直接在此处定义，覆盖弱定义
+
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
     if (hcan == &hcan2) {

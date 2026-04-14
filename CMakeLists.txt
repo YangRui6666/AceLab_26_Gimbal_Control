@@ -46,7 +46,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         User/Task/ctrl_msg_queue.c
         User/Task/communicate_task.cpp
         User/Module/MotorManage.h
-        User/Module/imu_fusion.cpp)
+        User/Module/imu_fusion.cpp
+        User/Task/debug_task.cpp)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)

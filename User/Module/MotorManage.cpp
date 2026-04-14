@@ -80,27 +80,41 @@ void MotorManage::send_can_cmd()
 
 void MotorManage::set(float yaw_target, float pitch_target)
 {
+#define DDEBUG_ALL_ON
 #ifdef DDEBUG_ALL_ON
 #define DDEBUG_YAW_ON
 #define DDEBUG_PITCH_ON
 #endif
 
 #ifdef DDEBUG_YAW_ON
-    volatile static int kp_debug_yaw = 10;
-    volatile static int ki_debug_yaw = 0;
+    volatile static int kp_debug_yaw = 18;
+    volatile static int ki_debug_yaw = 5;
     volatile static int kd_debug_yaw = 0;
     yaw_pid_location_.set_kp(kp_debug_yaw);
     yaw_pid_location_.set_ki(ki_debug_yaw);
     yaw_pid_location_.set_kd(kd_debug_yaw);
+    volatile static int kp_debug_yaw_speed = 25;
+    volatile static int ki_debug_yaw_speed = 5;
+    volatile static int kd_debug_yaw_speed = 0;
+    yaw_pid_speed_.set_kp(kp_debug_yaw_speed);
+    yaw_pid_speed_.set_ki(ki_debug_yaw_speed);
+    yaw_pid_speed_.set_kd(kd_debug_yaw_speed);
+
 #endif
 
 #ifdef DDEBUG_PITCH_ON
-    volatile static int kp_debug_pitch = 10;
-    volatile static int ki_debug_pitch = 0;
+    volatile static int kp_debug_pitch = 18;
+    volatile static int ki_debug_pitch = 4;
     volatile static int kd_debug_pitch = 0;
     pitch_pid_location_.set_kp(kp_debug_pitch);
     pitch_pid_location_.set_ki(ki_debug_pitch);
     pitch_pid_location_.set_kd(kd_debug_pitch);
+    volatile static int kp_debug_pitch_speed = 15;
+    volatile static int ki_debug_pitch_speed = 3;
+    volatile static int kd_debug_pitch_speed = 0;
+    pitch_pid_speed_.set_kp(kp_debug_pitch_speed);
+    pitch_pid_speed_.set_ki(ki_debug_pitch_speed);
+    pitch_pid_speed_.set_kd(kd_debug_pitch_speed);
 #endif
 
     const auto yaw_state = yaw_.get_state();
