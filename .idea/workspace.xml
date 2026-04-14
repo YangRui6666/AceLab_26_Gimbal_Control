@@ -36,13 +36,10 @@
   <component name="ChangeListManager">
     <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Src/main.c" beforeDir="false" afterPath="$PROJECT_DIR$/Core/Src/main.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Gimbal_um.ioc" beforeDir="false" afterPath="$PROJECT_DIR$/Gimbal_um.ioc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Bsp/Src/bsp_imu.c" beforeDir="false" afterPath="$PROJECT_DIR$/User/Bsp/Src/bsp_imu.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Library/MahonyAHRS.c" beforeDir="false" afterPath="$PROJECT_DIR$/User/Library/MahonyAHRS.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Library/MahonyAHRS.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Library/MahonyAHRS.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Module/imu_fusion.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/imu_fusion.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Device/device_gm6020.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Device/device_gm6020.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Device/device_gm6020.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Device/device_gm6020.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -54,12 +51,25 @@
     <option name="formatViaClangd" value="false" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="1606" />
+    <option name="cachedIndexableFilesCount" value="1608" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug - Debug" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="LiveWatchesService">
+    <items>
+      <expr>@ ALREADY PREPROCESSED @pitch_state</expr>
+    </items>
+    <columns>
+      <column name="livewatches.column.name.watch" width="223" />
+      <column name="livewatches.column.name.type" width="223" />
+      <column name="livewatches.column.name.value" width="223" />
+      <column name="livewatches.column.name.max" width="223" />
+      <column name="livewatches.column.name.min" width="223" />
+      <column name="livewatches.column.name.changes" width="223" />
+    </columns>
   </component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="s9gByZGu" />
@@ -82,39 +92,39 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;C/C++ 文件.scratch.cpp.executor&quot;: &quot;Run&quot;,
-    &quot;CMake 应用程序.Gimbal_um.executor&quot;: &quot;Debug&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.RadMigrateCodeStyle&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.west.config.association.type.startup.service&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;human&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/ACE/Gv3/Gimbalv3/User/Library&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;org.rust.first.attach.projects&quot;: &quot;true&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.cidr.rtos.config&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "C/C++ 文件.scratch.cpp.executor": "Run",
+    "CMake 应用程序.Gimbal_um.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.RadMigrateCodeStyle": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "RunOnceActivity.west.config.association.type.startup.service": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "human",
+    "last_opened_file_path": "D:/ACE/Gv3/Gimbalv3/User/Library",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "org.rust.first.attach.projects": "true",
+    "settings.editor.selected.configurable": "com.jetbrains.cidr.rtos.config",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/新建临时文件&quot;: [
-      &quot;C++&quot;
+  "keyToStringList": {
+    "com.intellij.ide.scratch.ScratchImplUtil$2/新建临时文件": [
+      "C++"
     ]
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\ACE\Gv3\Gimbalv3\User\Library" />
@@ -151,11 +161,11 @@
       </method>
     </configuration>
     <list>
-      <item itemvalue="CMake 应用程序.FreeRTOS" />
+      <item itemvalue="C/C++ 文件.scratch.cpp" />
       <item itemvalue="CMake 应用程序.Gimbal_um" />
+      <item itemvalue="CMake 应用程序.FreeRTOS" />
       <item itemvalue="CMake 应用程序.STM32_Drivers" />
       <item itemvalue="CMake 应用程序.USB_Device_Library" />
-      <item itemvalue="C/C++ 文件.scratch.cpp" />
     </list>
     <recent_temporary>
       <list>
@@ -176,7 +186,7 @@
       <workItem from="1776057166137" duration="12743000" />
       <workItem from="1776090010500" duration="3787000" />
       <workItem from="1776096956254" duration="1550000" />
-      <workItem from="1776127533638" duration="6000" />
+      <workItem from="1776127533638" duration="12720000" />
     </task>
     <task id="LOCAL-00001" summary="搭建起来一个自己的框架">
       <option name="closed" value="true" />
@@ -215,23 +225,22 @@
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/User/Bsp/Src/bsp_can.c</url>
-          <line>147</line>
+        <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/User/Task/ctrl_task.cpp</url>
+          <line>29</line>
           <properties>
             <option name="hitCountValue" value="1" />
           </properties>
-          <option name="timeStamp" value="23" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/Core/Src/stm32f4xx_it.c</url>
-          <line>229</line>
-          <properties>
-            <option name="hitCountValue" value="1" />
-          </properties>
-          <option name="timeStamp" value="26" />
+          <option name="timeStamp" value="61" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
+    <watches-manager>
+      <configuration name="CMakeRunConfiguration">
+        <watch expression="pitch_state" />
+        <watch expression="yaw_state" />
+        <watch expression="@ ALREADY PREPROCESSED @imu_data_fusion" />
+      </configuration>
+    </watches-manager>
   </component>
 </project>

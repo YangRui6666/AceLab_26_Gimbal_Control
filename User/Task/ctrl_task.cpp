@@ -1,6 +1,8 @@
 //
 // Created by CORE on 2026/4/9.
 //
+#include <cmath>
+
 #include "bsp_usb.h"
 #include "cmsis_os2.h"
 #include "FreeRTOS.h"
@@ -23,7 +25,22 @@ static float text_wave()
         high = !high;
     }
 
-    return high ? 30.0f : 0.0f;
+    if (high)
+    {
+        return 30.0f;
+    }
+
+    return -30.0f;
+}
+
+float gen_sin_target(float amp_deg, float freq_hz)
+{
+    const float two_pi = 6.2831853f;
+
+    // 时间（假设 tick = 1ms）
+    float t = osKernelGetTickCount() * 0.001f;
+
+    return amp_deg * sinf(two_pi * freq_hz * t);
 }
 
 extern "C" void StartCtrlTask(void *argument)
@@ -53,9 +70,11 @@ extern "C" void StartCtrlTask(void *argument)
 
         targ_pitch = motor_manage.get_pitch_target();
         targ_yaw = motor_manage.get_yaw_target();
-
+        (void)imu_check();
         motor_manage.update_feedback();
-        motor_manage.set(text_wave(), 0.0f);
+        (void)can_check(0x206);
+        motor_manage.set(gen_sin_target(60.0f, 0.5f),gen_sin_target(60.0f, 2.0f));
+        //motor_manage.set(30.f, 0.0f);
         motor_manage.send_can_cmd();
 
         vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(1));

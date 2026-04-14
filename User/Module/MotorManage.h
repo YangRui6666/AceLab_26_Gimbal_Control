@@ -6,27 +6,26 @@
 #define GIMBAL_UM_MOTORMANAGE_H
 
 #include <stdint.h>
-#include "device_gm6020.h"
+
 #include "PID.h"
+#include "device_gm6020.h"
+
+#define  DDBUG_DATA_ON
 
 #ifdef DDBUG_DATA_ON
 typedef struct
 {
-    // 输入目标（MotorManage::set 的入参）
-    float yaw_angle_target_deg;
-    float pitch_angle_target_deg;
+    float yaw_angle_t;
+    float pitch_angle_t;
 
-    // 位置环输出的目标速度（PID 输出）
-    float yaw_speed_target_dps;
-    float pitch_speed_target_dps;
+    float yaw_speed_t;
+    float pitch_speed_t;
 
-    // 速度环输出的电流（PID 输出：raw float + 最终下发 int16）
-    float yaw_current_pid_raw;
-    float pitch_current_pid_raw;
+    float yaw_current_pid;
+    float pitch_current_pid;
     int16_t yaw_current_cmd;
     int16_t pitch_current_cmd;
 
-    // 当前反馈
     float yaw_angle_meas_deg;
     float pitch_angle_meas_deg;
     float yaw_speed_meas_dps;
@@ -34,7 +33,6 @@ typedef struct
     int16_t yaw_current_meas;
     int16_t pitch_current_meas;
 
-    // 时间信息
     float dt_s;
     uint32_t tick_ms;
 } MotorManageDebugData;
@@ -42,13 +40,13 @@ typedef struct
 extern volatile MotorManageDebugData g_motor_manage_debug;
 #endif
 
-class MotorManage {
+class MotorManage
+{
 public:
     MotorManage();
 
     void update_feedback();
     void send_can_cmd();
-    // 关节目标角，单位：deg
     void set(float yaw_target, float pitch_target);
     void lock();
 
@@ -62,6 +60,16 @@ public:
     PID yaw_pid_location_;
     PID pitch_pid_speed_;
     PID pitch_pid_location_;
+
+private:
+    static float clamp_target_deg(float value, float min_value, float max_value);
+    float yaw_motor_to_joint_deg(float motor_angle_deg) const;
+    static float pitch_motor_to_joint_deg(float motor_angle_deg);
+    void hold_yaw_axis();
+    void hold_pitch_axis();
+
+    bool yaw_zero_ready_;
+    float yaw_boot_zero_deg_;
 };
 
-#endif //GIMBAL_UM_MOTORMANAGE_H
+#endif // GIMBAL_UM_MOTORMANAGE_H
