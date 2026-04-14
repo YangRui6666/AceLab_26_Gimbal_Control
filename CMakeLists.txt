@@ -36,6 +36,7 @@ add_executable(${CMAKE_PROJECT_NAME}
         User/Bsp/Src/bsp_usb.c
         User/Bsp/Src/bsp_imu.c
         User/Bsp/Src/bsp_can.c
+        User/Library/MahonyAHRS.c
         User/Device/device_gm6020.cpp
         User/Bsp/Inc/bsp_can.h
         User/Module/MotorManage.cpp

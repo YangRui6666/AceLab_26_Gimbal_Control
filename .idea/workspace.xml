@@ -36,14 +36,13 @@
   <component name="ChangeListManager">
     <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Inc/stm32f4xx_it.h" beforeDir="false" afterPath="$PROJECT_DIR$/Core/Inc/stm32f4xx_it.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Core/Src/main.c" beforeDir="false" afterPath="$PROJECT_DIR$/Core/Src/main.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Src/stm32f4xx_hal_msp.c" beforeDir="false" afterPath="$PROJECT_DIR$/Core/Src/stm32f4xx_hal_msp.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Src/stm32f4xx_it.c" beforeDir="false" afterPath="$PROJECT_DIR$/Core/Src/stm32f4xx_it.c" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Gimbal_um.ioc" beforeDir="false" afterPath="$PROJECT_DIR$/Gimbal_um.ioc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Bsp/Src/bsp_can.c" beforeDir="false" afterPath="$PROJECT_DIR$/User/Bsp/Src/bsp_can.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Bsp/Src/bsp_can_example.c" beforeDir="false" afterPath="$PROJECT_DIR$/User/Bsp/Src/bsp_can_example.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Module/imu_fusion.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/imu_fusion.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Bsp/Src/bsp_imu.c" beforeDir="false" afterPath="$PROJECT_DIR$/User/Bsp/Src/bsp_imu.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Library/MahonyAHRS.c" beforeDir="false" afterPath="$PROJECT_DIR$/User/Library/MahonyAHRS.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Library/MahonyAHRS.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Library/MahonyAHRS.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/imu_fusion.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/imu_fusion.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -152,11 +151,11 @@
       </method>
     </configuration>
     <list>
-      <item itemvalue="C/C++ 文件.scratch.cpp" />
-      <item itemvalue="CMake 应用程序.Gimbal_um" />
       <item itemvalue="CMake 应用程序.FreeRTOS" />
+      <item itemvalue="CMake 应用程序.Gimbal_um" />
       <item itemvalue="CMake 应用程序.STM32_Drivers" />
       <item itemvalue="CMake 应用程序.USB_Device_Library" />
+      <item itemvalue="C/C++ 文件.scratch.cpp" />
     </list>
     <recent_temporary>
       <list>
@@ -176,7 +175,8 @@
       <workItem from="1775996156898" duration="6300000" />
       <workItem from="1776057166137" duration="12743000" />
       <workItem from="1776090010500" duration="3787000" />
-      <workItem from="1776096956254" duration="924000" />
+      <workItem from="1776096956254" duration="1550000" />
+      <workItem from="1776127533638" duration="6000" />
     </task>
     <task id="LOCAL-00001" summary="搭建起来一个自己的框架">
       <option name="closed" value="true" />

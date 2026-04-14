@@ -30,40 +30,35 @@ extern "C" void StartCtrlTask(void *argument)
 {
     /* USER CODE BEGIN StartCtrlTask */
     /* Infinite loop */
-    
+    (void)argument;
+
     MotorManage motor_manage;
 
     TickType_t last_wake_time = xTaskGetTickCount();
-    imu_data_t imu_data_fusion;
-    imu_data_fusion.pitch = -1.0f;
-    imu_data_fusion.roll = -1.0f;
-    imu_data_fusion.yaw = -1.0f;
+    imu_data_t imu_data_fusion = {0.0f, 0.0f, 0.0f};
 
     GM6020::Target targ_yaw = motor_manage.get_yaw_target();
     GM6020::Target targ_pitch = motor_manage.get_pitch_target();
 
 
-    bool b = bsp_usb_init();
-    bool a = bsp_can_init();
+    bsp_usb_init();
+    bsp_can_init();
+    imu_init();
     osDelay(100);
-        for(;;)
-        {
-            /*code*/
-            imu_update();
-            imu_get_data(&imu_data_fusion);
+    last_wake_time = xTaskGetTickCount();
+    for(;;)
+    {
+        imu_update();
+        imu_get_data(&imu_data_fusion);
 
-            targ_pitch = motor_manage.get_pitch_target();
-            targ_yaw = motor_manage.get_yaw_target();
+        targ_pitch = motor_manage.get_pitch_target();
+        targ_yaw = motor_manage.get_yaw_target();
 
-            motor_manage.update_feedback();
-            motor_manage.set(text_wave(), 0.0f);
-            // motor_manage.send_can_cmd();
-            bool c = can_check(0x206);
-            bool d = can_check(0x208);
-            last_wake_time = xTaskGetTickCount();
-            usb_send_rawf("%d\r\n",last_wake_time);
+        motor_manage.update_feedback();
+        motor_manage.set(text_wave(), 0.0f);
+        motor_manage.send_can_cmd();
 
-            vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(1));
-        }
+        vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(1));
+    }
     /* USER CODE END StartCtrlTask */
 }

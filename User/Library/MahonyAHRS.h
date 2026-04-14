@@ -1,42 +1,41 @@
-//=====================================================================================================
-// MahonyAHRS.h
-//=====================================================================================================
-//
-// Madgwick's implementation of Mayhony's AHRS algorithm.
-// 马德威克的梅奥尼姿态航向参考系统算法实现
-// See: http://www.x-io.co.uk/node/8#open_source_ahrs_and_imu_algorithms
-// 参见：http://www.x-io.co.uk/node/8#open_source_ahrs_and_imu_algorithms
-//
-// Date			Author			Notes
-// 日期			作者			备注
-// 29/09/2011	SOH Madgwick    Initial release
-// 初始版本
-// 02/10/2011	SOH Madgwick	Optimised for reduced CPU load
-// 优化以降低 CPU 负载
-//
-//=====================================================================================================
-#ifndef MahonyAHRS_h
-#define MahonyAHRS_h
+#ifndef MAHONY_AHRS_H
+#define MAHONY_AHRS_H
 
-//----------------------------------------------------------------------------------------------------
-// Variable declaration
-// 变量声明
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-extern volatile float twoKp;			// 2 * proportional gain (Kp)
-										// 2 * 比例增益 (Kp)
-extern volatile float twoKi;			// 2 * integral gain (Ki)
-										// 2 * 积分增益 (Ki)
-extern volatile float q0, q1, q2, q3;	// quaternion of sensor frame relative to auxiliary frame
-										// 传感器坐标系相对于辅助坐标系的四元数
+#include <stdbool.h>
+#include <stdint.h>
 
-//---------------------------------------------------------------------------------------------------
-// Function declarations
-// 函数声明
+typedef struct
+{
+    float q0;
+    float q1;
+    float q2;
+    float q3;
+    float integral_fb_x;
+    float integral_fb_y;
+    float integral_fb_z;
+    uint32_t last_tick;
+    bool has_time_base;
+} mahony_ahrs_t;
 
-void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz);
-void MahonyAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay, float az);
+void mahony_ahrs_init(mahony_ahrs_t *state);
+void mahony_ahrs_update_imu(mahony_ahrs_t *state,
+                            float gx_rad_s,
+                            float gy_rad_s,
+                            float gz_rad_s,
+                            float ax_mps2,
+                            float ay_mps2,
+                            float az_mps2);
+void mahony_ahrs_get_euler_deg(const mahony_ahrs_t *state,
+                               float *yaw_deg,
+                               float *pitch_deg,
+                               float *roll_deg);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
-//=====================================================================================================
-// End of file
-//=====================================================================================================
