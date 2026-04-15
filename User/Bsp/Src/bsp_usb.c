@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include "stm32f4xx.h"
 #include "usbd_cdc_if.h"
@@ -15,6 +16,8 @@
 #define USB_EOF_BYTE_1 0xA5U
 #define USB_FRAME_OVERHEAD 8U
 #define USB_FRAME_MAX_SIZE (255U + USB_FRAME_OVERHEAD)
+#define USB_MAX_DELTA_YAW_DEG 60.0f
+#define USB_MAX_DELTA_PITCH_DEG 40.0f
 
 typedef struct
 {
@@ -283,6 +286,13 @@ static bool usb_decode_ctrl_msg(uint8_t cmd, const uint8_t *payload, uint8_t pay
             msg->delta_yaw = (float)(int16_t)usb_read_u16_le(&payload[0]) / 100.0f;
             msg->delta_pitch = (float)(int16_t)usb_read_u16_le(&payload[2]) / 100.0f;
             msg->time_stamp = usb_read_u32_le(&payload[4]);
+
+            if ((fabsf(msg->delta_yaw) > USB_MAX_DELTA_YAW_DEG) ||
+                (fabsf(msg->delta_pitch) > USB_MAX_DELTA_PITCH_DEG))
+            {
+                return false;
+            }
+
             return true;
 
         case 0x87:

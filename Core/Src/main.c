@@ -59,21 +59,21 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t CtrlTaskHandle;
 const osThreadAttr_t CtrlTask_attributes = {
   .name = "CtrlTask",
-  .stack_size = 256 * 4,
+  .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityRealtime,
 };
 /* Definitions for CommunicateTask */
 osThreadId_t CommunicateTaskHandle;
 const osThreadAttr_t CommunicateTask_attributes = {
   .name = "CommunicateTask",
-  .stack_size = 128 * 4,
+  .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for dddebugTask */
 osThreadId_t dddebugTaskHandle;
 const osThreadAttr_t dddebugTask_attributes = {
   .name = "dddebugTask",
-  .stack_size = 256 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityRealtime,
 };
 /* Definitions for comm_sem */

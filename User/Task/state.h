@@ -49,6 +49,9 @@ static struct {
     // ===== 自瞄相关 =====
     float auto_aim_delta_yaw;    // 最近一次接收的增量（可累积或单次使用），单位：deg
     float auto_aim_delta_pitch;
+    uint32_t last_ctrl_msg_tick;    // 最近一次收到有效控制消息的时刻
+    uint32_t last_auto_aim_tick;    // 最近一次收到自瞄消息的时刻
+    uint32_t last_status_tx_tick;   // 最近一次发送状态反馈的时刻
 
     // ===== 健康状态 =====
     bool imu_online;             // IMU 是否正常
