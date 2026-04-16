@@ -52,6 +52,8 @@ public:
 
     GM6020::Target get_yaw_target() const;
     GM6020::Target get_pitch_target() const;
+    float get_yaw_joint_deg() const;
+    float get_pitch_joint_deg() const;
 
     GM6020 yaw_;
     GM6020 pitch_;

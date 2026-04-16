@@ -79,7 +79,7 @@ extern "C" void StartdddebugTask(void *argument)
         // motor_manage.set(0,gen_sin_target(10.0f, 0.5f));
         // motor_manage.set(0, gen_step_target(20.0f));
         // motor_manage.set(30.f, 0.0f);
-        motor_manage.set(gen_sin_target(10.0f, 0.5f),0.0f);
+        motor_manage.set(gen_sin_target(10.0f, 0.5f),-10.0f);
         // motor_manage.set(gen_step_target(60.0f), 0);
         motor_manage.send_can_cmd();
 

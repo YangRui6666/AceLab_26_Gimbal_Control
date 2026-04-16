@@ -185,7 +185,8 @@ void MotorManage::set(float yaw_target, float pitch_target)
     const bool pitch_online = pitch_.check(ticks);
 #endif
     const float yaw_target_clamped = clamp_target_deg(yaw_target, k_yaw_limit_min_deg, k_yaw_limit_max_deg);
-    const float pitch_target_clamped = clamp_target_deg(pitch_target, k_pitch_limit_min_deg, k_pitch_limit_max_deg);
+    const float pitch_target_internal = -pitch_target;
+    const float pitch_target_clamped = clamp_target_deg(pitch_target_internal, k_pitch_limit_min_deg, k_pitch_limit_max_deg);
     const float yaw_meas_joint_deg = (yaw_zero_ready_ && yaw_.has_feedback()) ? yaw_motor_to_joint_deg(yaw_state.angle_deg) : 0.0f;
     const float pitch_meas_joint_deg = pitch_.has_feedback() ? pitch_motor_to_joint_deg(pitch_state.angle_deg) : 0.0f;
 
@@ -273,6 +274,26 @@ GM6020::Target MotorManage::get_yaw_target() const
 GM6020::Target MotorManage::get_pitch_target() const
 {
     return pitch_.get_target();
+}
+
+float MotorManage::get_yaw_joint_deg() const
+{
+    if (!yaw_zero_ready_ || !yaw_.has_feedback())
+    {
+        return 0.0f;
+    }
+
+    return yaw_motor_to_joint_deg(yaw_.get_state().angle_deg);
+}
+
+float MotorManage::get_pitch_joint_deg() const
+{
+    if (!pitch_.has_feedback())
+    {
+        return 0.0f;
+    }
+
+    return pitch_motor_to_joint_deg(pitch_.get_state().angle_deg);
 }
 
 float MotorManage::clamp_target_deg(float value, float min_value, float max_value)

@@ -10,7 +10,7 @@ extern "C" osSemaphoreId_t comm_semHandle;
 
 extern "C" void StartCommunicateTask(void *argument)
 {
-    CtrlMsg_t ctrl_msg;
+    static CtrlMsg_t ctrl_msg;
 
     (void)argument;
     bsp_usb_init();

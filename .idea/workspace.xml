@@ -36,13 +36,13 @@
   <component name="ChangeListManager">
     <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Src/main.c" beforeDir="false" afterPath="$PROJECT_DIR$/Core/Src/main.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Gimbal_um.ioc" beforeDir="false" afterPath="$PROJECT_DIR$/Gimbal_um.ioc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Bsp/Src/bsp_usb.c" beforeDir="false" afterPath="$PROJECT_DIR$/User/Bsp/Src/bsp_usb.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Task/communicate_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/communicate_task.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Task/debug_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/debug_task.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Task/state.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/state.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tools/gamepad_calibration.json" beforeDir="false" afterPath="$PROJECT_DIR$/tools/gamepad_calibration.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/gamepad_control.py" beforeDir="false" afterPath="$PROJECT_DIR$/tools/gamepad_control.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,7 +53,7 @@
     <option name="formatViaClangd" value="false" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="3037" />
+    <option name="cachedIndexableFilesCount" value="3039" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug - Debug" />
@@ -193,7 +193,12 @@
       <workItem from="1776155142713" duration="6053000" />
       <workItem from="1776174569093" duration="2814000" />
       <workItem from="1776229988053" duration="6220000" />
-      <workItem from="1776248270235" duration="866000" />
+      <workItem from="1776248270235" duration="3226000" />
+      <workItem from="1776256254841" duration="2638000" />
+      <workItem from="1776259984605" duration="1401000" />
+      <workItem from="1776270898817" duration="1019000" />
+      <workItem from="1776302502754" duration="4670000" />
+      <workItem from="1776312580181" duration="4431000" />
     </task>
     <task id="LOCAL-00001" summary="搭建起来一个自己的框架">
       <option name="closed" value="true" />
@@ -236,11 +241,6 @@
           <url>file://$PROJECT_DIR$/Core/Src/main.c</url>
           <line>121</line>
           <option name="timeStamp" value="63" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/User/Task/ctrl_task.cpp</url>
-          <line>96</line>
-          <option name="timeStamp" value="66" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

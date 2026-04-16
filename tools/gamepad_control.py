@@ -645,13 +645,7 @@ class GimbalController:
         self._calibration = CalibrationStore(config)
         self._calibration.load()
         self._last_buttons = ButtonState()
-        self._virtual_yaw_deg = config.abs_center_yaw_deg
-        self._virtual_pitch_deg = config.abs_center_pitch_deg
-        self._right_target_yaw_deg = config.abs_center_yaw_deg
-        self._right_target_pitch_deg = config.abs_center_pitch_deg
-        self._right_target_yaw_vel = 0.0
-        self._right_target_pitch_vel = 0.0
-        self._right_returning_to_center = False
+        self._search_active = False
         self._tx_enabled_sent = False
         self._last_status_print = 0.0
         self._last_status_len = 0
@@ -692,7 +686,7 @@ class GimbalController:
         offset_pitch = left_y * self._config.left_abs_range_deg * self._config.pitch_scale
         return offset_yaw, offset_pitch
 
-    def _update_right_target(self, sample: JoystickSample, dt_s: float) -> Tuple[float, float]:
+    def _compute_right_offset(self, sample: JoystickSample) -> Tuple[float, float]:
         right_x, right_y = self._normalized_pair(
             "right",
             "right_x",
@@ -710,53 +704,11 @@ class GimbalController:
             right_y,
             self._config.right_curve_exp,
         )
+        offset_yaw = yaw_axis * self._config.abs_range_deg * self._config.yaw_scale
+        offset_pitch = pitch_axis * self._config.abs_range_deg * self._config.pitch_scale
+        return offset_yaw, offset_pitch
 
-        if abs(yaw_axis) > 1e-4 or abs(pitch_axis) > 1e-4:
-            self._right_returning_to_center = False
-            self._right_target_yaw_vel = 0.0
-            self._right_target_pitch_vel = 0.0
-
-        if self._right_returning_to_center:
-            self._right_target_yaw_deg, self._right_target_yaw_vel = damped_step(
-                self._right_target_yaw_deg,
-                self._right_target_yaw_vel,
-                self._config.abs_center_yaw_deg,
-                self._config.abs_return_rate_deg_s * self._config.yaw_scale,
-                dt_s,
-            )
-            self._right_target_pitch_deg, self._right_target_pitch_vel = damped_step(
-                self._right_target_pitch_deg,
-                self._right_target_pitch_vel,
-                self._config.abs_center_pitch_deg,
-                self._config.abs_return_rate_deg_s * self._config.pitch_scale,
-                dt_s,
-            )
-
-            if (
-                abs(self._right_target_yaw_deg - self._config.abs_center_yaw_deg) <= 1e-3
-                and abs(self._right_target_pitch_deg - self._config.abs_center_pitch_deg) <= 1e-3
-                and abs(self._right_target_yaw_vel) <= 1e-3
-                and abs(self._right_target_pitch_vel) <= 1e-3
-            ):
-                self._right_returning_to_center = False
-                self._right_target_yaw_vel = 0.0
-                self._right_target_pitch_vel = 0.0
-
-            return self._right_target_yaw_deg, self._right_target_pitch_deg
-
-        self._right_target_yaw_deg = clamp(
-            self._right_target_yaw_deg + yaw_axis * self._config.abs_slew_rate_deg_s * dt_s * self._config.yaw_scale,
-            -self._config.abs_range_deg,
-            self._config.abs_range_deg,
-        )
-        self._right_target_pitch_deg = clamp(
-            self._right_target_pitch_deg + pitch_axis * self._config.abs_slew_rate_deg_s * dt_s * self._config.pitch_scale,
-            -self._config.abs_range_deg,
-            self._config.abs_range_deg,
-        )
-        return self._right_target_yaw_deg, self._right_target_pitch_deg
-
-    def _handle_commands(self, sample: JoystickSample, timestamp_ms: int, dt_s: float) -> List[bytes]:
+    def _handle_commands(self, sample: JoystickSample, timestamp_ms: int) -> List[bytes]:
         frames: List[bytes] = []
 
         if not self._tx_enabled_sent:
@@ -769,33 +721,29 @@ class GimbalController:
 
         if self._rising(sample.buttons.a, self._last_buttons.a):
             frames.append(build_frame(CMD_ENTER_SEARCH, pack_u32_le(timestamp_ms)))
+            self._search_active = True
 
         if self._rising(sample.buttons.b, self._last_buttons.b):
             frames.append(build_frame(CMD_ENTER_LOCK))
+            self._search_active = False
 
         if self._rising(sample.buttons.x, self._last_buttons.x):
             frames.append(build_frame(CMD_EXIT_LOCK))
-
-        if self._rising(sample.buttons.rb, self._last_buttons.rb):
-            self._right_returning_to_center = True
-            self._right_target_yaw_vel = 0.0
-            self._right_target_pitch_vel = 0.0
-
-        self._right_target_yaw_deg, self._right_target_pitch_deg = self._update_right_target(sample, dt_s)
+            self._search_active = False
 
         left_offset_yaw, left_offset_pitch = self._compute_left_offset(sample)
-        desired_yaw = self._right_target_yaw_deg + left_offset_yaw
-        desired_pitch = self._right_target_pitch_deg + left_offset_pitch
-        total_delta_yaw = desired_yaw - self._virtual_yaw_deg
-        total_delta_pitch = desired_pitch - self._virtual_pitch_deg
+        right_offset_yaw, right_offset_pitch = self._compute_right_offset(sample)
+        command_yaw = left_offset_yaw + right_offset_yaw
+        command_pitch = left_offset_pitch + right_offset_pitch
 
-        if abs(total_delta_yaw) > 1e-4 or abs(total_delta_pitch) > 1e-4:
-            self._virtual_yaw_deg = desired_yaw
-            self._virtual_pitch_deg = desired_pitch
+        if abs(command_yaw) > 1e-4 or abs(command_pitch) > 1e-4:
+            self._search_active = False
+
+        if not self._search_active:
             frames.append(
                 build_frame(
                     CMD_AUTO_AIM_DELTA,
-                    pack_aim_delta(total_delta_yaw, total_delta_pitch, timestamp_ms),
+                    pack_aim_delta(command_yaw, command_pitch, timestamp_ms),
                 )
             )
 
@@ -811,23 +759,28 @@ class GimbalController:
         if sample is None:
             line = (
                 f"USB:{'OK' if serial_port else 'NO'} "
+                f"MODE:{'SEARCH' if self._search_active else 'AIM'} "
                 "LX:+0.00 LY:+0.00 RX:+0.00 RY:+0.00 "
-                "LT:+0.0/+0.0 RT:+0.0/+0.0 VT:+0.0/+0.0"
+                "LT:+0.0/+0.0 RT:+0.0/+0.0 CMD:+0.0/+0.0"
             )
             self._write_status_line(line)
             return
 
         left_offset_yaw, left_offset_pitch = self._compute_left_offset(sample)
+        right_offset_yaw, right_offset_pitch = self._compute_right_offset(sample)
+        command_yaw = left_offset_yaw + right_offset_yaw
+        command_pitch = left_offset_pitch + right_offset_pitch
         left_x_cal = self._calibration.summary("left_x")
         left_y_cal = self._calibration.summary("left_y")
         left_ul_cal = self._calibration.corner_summary("left_ul")
         line = (
             f"USB:{'OK' if serial_port else 'NO'} "
+            f"MODE:{'SEARCH' if self._search_active else 'AIM'} "
             f"LX:{sample.left_x:+.2f} LY:{sample.left_y:+.2f} "
             f"RX:{sample.right_x:+.2f} RY:{sample.right_y:+.2f} "
             f"LT:{left_offset_yaw:+.1f}/{left_offset_pitch:+.1f} "
-            f"RT:{self._right_target_yaw_deg:+.1f}/{self._right_target_pitch_deg:+.1f} "
-            f"VT:{self._virtual_yaw_deg:+.1f}/{self._virtual_pitch_deg:+.1f} "
+            f"RT:{right_offset_yaw:+.1f}/{right_offset_pitch:+.1f} "
+            f"CMD:{command_yaw:+.1f}/{command_pitch:+.1f} "
             f"CAL:{left_x_cal.negative:.2f}/{left_x_cal.positive:.2f}|{left_y_cal.negative:.2f}/{left_y_cal.positive:.2f} "
             f"UL:{left_ul_cal.x:.2f}/{left_ul_cal.y:.2f}"
         )
@@ -847,7 +800,7 @@ class GimbalController:
             self._last_buttons = ButtonState()
             return []
         timestamp_ms = int(time.monotonic() * 1000.0) & 0xFFFFFFFF
-        return self._handle_commands(sample, timestamp_ms, dt_s)
+        return self._handle_commands(sample, timestamp_ms)
 
     def save_calibration(self) -> None:
         self._calibration.save()
@@ -870,10 +823,11 @@ def parse_args(argv: Sequence[str]) -> Config:
     parser.add_argument("--abs-center-pitch", type=float, default=0.0, help="Right stick absolute center for pitch")
     parser.add_argument("--yaw-scale", type=float, default=1.0, help="Global yaw gain")
     parser.add_argument("--pitch-scale", type=float, default=1.0, help="Global pitch gain")
-    parser.add_argument("--invert-yaw", action="store_true", help="Invert yaw axis")
+    parser.add_argument("--invert-yaw", dest="invert_yaw", action="store_true", default=True, help="Invert yaw axis")
+    parser.add_argument("--no-invert-yaw", dest="invert_yaw", action="store_false", help="Do not invert yaw axis")
     parser.add_argument("--left-invert-y", dest="left_invert_y", action="store_true", default=True, help="Invert left stick Y axis")
     parser.add_argument("--no-left-invert-y", dest="left_invert_y", action="store_false", help="Do not invert left stick Y axis")
-    parser.add_argument("--right-invert-y", dest="right_invert_y", action="store_true", default=False, help="Invert right stick Y axis")
+    parser.add_argument("--right-invert-y", dest="right_invert_y", action="store_true", default=True, help="Invert right stick Y axis")
     parser.add_argument("--no-right-invert-y", dest="right_invert_y", action="store_false", help="Do not invert right stick Y axis")
     parser.add_argument("--status-period", type=float, default=0.02, help="Status print interval in seconds")
     parser.add_argument("--auto-calibrate", dest="auto_calibrate", action="store_true", default=True, help="Automatically learn stick axis limits")

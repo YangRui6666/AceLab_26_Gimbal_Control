@@ -19,7 +19,8 @@ namespace
 
 constexpr bool k_ctrl_task_debug_block = false;
 constexpr uint32_t k_ctrl_period_ms = 1U;
-constexpr uint32_t k_mode_timeout_ms = 500U;
+constexpr uint32_t k_auto_aim_timeout_ms = 500U;
+constexpr uint32_t k_search_to_stable_timeout_ms = 30000U;
 constexpr uint32_t k_status_feedback_period_ms = 10U;
 constexpr uint16_t k_yaw_can_id = 0x206U;
 constexpr uint16_t k_pitch_can_id = 0x208U;
@@ -173,12 +174,6 @@ void ctrl_handle_msg(const CtrlMsg_t *msg, uint32_t now_tick, bool *send_lock_fe
             ctrl_ctx.protect_state = PROTECT_NONE;
             ctrl_ctx.auto_aim_delta_yaw = msg->delta_yaw;
             ctrl_ctx.auto_aim_delta_pitch = msg->delta_pitch;
-            ctrl_ctx.yaw_joint_target = clampf(ctrl_ctx.yaw_joint_target + msg->delta_yaw,
-                                               k_yaw_limit_min_deg,
-                                               k_yaw_limit_max_deg);
-            ctrl_ctx.pitch_joint_target = clampf(ctrl_ctx.pitch_joint_target + msg->delta_pitch,
-                                                 k_pitch_limit_min_deg,
-                                                 k_pitch_limit_max_deg);
             break;
 
         case CTRL_MSG_ENTER_LOCK:
@@ -236,7 +231,7 @@ void ctrl_update_mode_timeout(uint32_t now_tick)
 
     if ((ctrl_ctx.work_mode == WORK_MODE_AUTO_AIM) &&
         (ctrl_ctx.last_auto_aim_tick != 0U) &&
-        ((uint32_t)(now_tick - ctrl_ctx.last_auto_aim_tick) > k_mode_timeout_ms))
+        ((uint32_t)(now_tick - ctrl_ctx.last_auto_aim_tick) > k_auto_aim_timeout_ms))
     {
         ctrl_enter_search(now_tick);
         return;
@@ -244,7 +239,7 @@ void ctrl_update_mode_timeout(uint32_t now_tick)
 
     if ((ctrl_ctx.work_mode == WORK_MODE_SEARCH) &&
         (ctrl_ctx.last_ctrl_msg_tick != 0U) &&
-        ((uint32_t)(now_tick - ctrl_ctx.last_ctrl_msg_tick) > k_mode_timeout_ms))
+        ((uint32_t)(now_tick - ctrl_ctx.last_ctrl_msg_tick) > k_search_to_stable_timeout_ms))
     {
         ctrl_enter_stable();
     }
@@ -278,7 +273,7 @@ void ctrl_send_status_if_due(uint32_t now_tick)
 extern "C" void StartCtrlTask(void *argument)
 {
     /* USER CODE BEGIN StartCtrlTask */
-    // osDelay(osWaitForever);
+    //osDelay(osWaitForever);
     (void)argument;
 
     MotorManage motor_manage;
@@ -301,6 +296,7 @@ extern "C" void StartCtrlTask(void *argument)
 
     for (;;)
     {
+        //osDelay(osWaitForever);
         const uint32_t now_tick = osKernelGetTickCount();
         bool send_lock_feedback = false;
 
@@ -332,6 +328,15 @@ extern "C" void StartCtrlTask(void *argument)
         if (ctrl_ctx.work_mode == WORK_MODE_SEARCH)
         {
             ctrl_update_search_target(now_tick);
+        }
+        else if (ctrl_ctx.work_mode == WORK_MODE_AUTO_AIM)
+        {
+            ctrl_ctx.yaw_joint_target = clampf(motor_manage.get_yaw_joint_deg() + ctrl_ctx.auto_aim_delta_yaw,
+                                               k_yaw_limit_min_deg,
+                                               k_yaw_limit_max_deg);
+            ctrl_ctx.pitch_joint_target = clampf(motor_manage.get_pitch_joint_deg() + ctrl_ctx.auto_aim_delta_pitch,
+                                                 k_pitch_limit_min_deg,
+                                                 k_pitch_limit_max_deg);
         }
 
         ctrl_ctx.yaw_joint_target = clampf(ctrl_ctx.yaw_joint_target,
