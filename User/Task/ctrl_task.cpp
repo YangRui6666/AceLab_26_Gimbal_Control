@@ -172,7 +172,7 @@ void ctrl_handle_msg(const CtrlMsg_t *msg, uint32_t now_tick, bool *send_lock_fe
             ctrl_ctx.last_auto_aim_tick = now_tick;
             ctrl_ctx.work_mode = WORK_MODE_AUTO_AIM;
             ctrl_ctx.protect_state = PROTECT_NONE;
-            ctrl_ctx.auto_aim_delta_yaw = msg->delta_yaw;
+            ctrl_ctx.auto_aim_delta_yaw = -msg->delta_yaw;
             ctrl_ctx.auto_aim_delta_pitch = msg->delta_pitch;
             break;
 

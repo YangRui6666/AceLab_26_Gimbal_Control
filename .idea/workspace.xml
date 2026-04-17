@@ -5,8 +5,9 @@
   </component>
   <component name="BackendCodeEditorMiscSettings">
     <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
-    <option name="/Default/Housekeeping/LiveTemplatesHousekeeping/HotspotSessionHintIsShown/@EntryValue" value="true" type="bool" />
+    <option name="/Default/Housekeeping/GlobalSettingsUpgraded/IsUpgraded/@EntryValue" value="true" type="bool" />
     <option name="/Default/Housekeeping/OptionsDialog/SelectedPageId/@EntryValue" value="CppFormatterOtherPage" type="string" />
+    <option name="/Default/RiderDebugger/RiderRestoreDecompile/RestoreDecompileSetting/@EntryValue" value="false" type="bool" />
   </component>
   <component name="CMakePresetLoader">{
   &quot;useNewFormat&quot;: true
@@ -36,13 +37,7 @@
   <component name="ChangeListManager">
     <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Task/communicate_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/communicate_task.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Task/debug_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/debug_task.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/gamepad_calibration.json" beforeDir="false" afterPath="$PROJECT_DIR$/tools/gamepad_calibration.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/gamepad_control.py" beforeDir="false" afterPath="$PROJECT_DIR$/tools/gamepad_control.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,7 +48,7 @@
     <option name="formatViaClangd" value="false" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="3039" />
+    <option name="cachedIndexableFilesCount" value="3041" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug - Debug" />
@@ -97,7 +92,7 @@
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;C/C++ 文件.scratch.cpp.executor&quot;: &quot;Run&quot;,
-    &quot;CMake 应用程序.Gimbal_um.executor&quot;: &quot;Run&quot;,
+    &quot;CMake 应用程序.Gimbal_um.executor&quot;: &quot;Debug&quot;,
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.RadMigrateCodeStyle&quot;: &quot;true&quot;,
@@ -163,11 +158,11 @@
       </method>
     </configuration>
     <list>
-      <item itemvalue="C/C++ 文件.scratch.cpp" />
-      <item itemvalue="CMake 应用程序.Gimbal_um" />
       <item itemvalue="CMake 应用程序.FreeRTOS" />
+      <item itemvalue="CMake 应用程序.Gimbal_um" />
       <item itemvalue="CMake 应用程序.STM32_Drivers" />
       <item itemvalue="CMake 应用程序.USB_Device_Library" />
+      <item itemvalue="C/C++ 文件.scratch.cpp" />
     </list>
     <recent_temporary>
       <list>
@@ -198,7 +193,13 @@
       <workItem from="1776259984605" duration="1401000" />
       <workItem from="1776270898817" duration="1019000" />
       <workItem from="1776302502754" duration="4670000" />
-      <workItem from="1776312580181" duration="4431000" />
+      <workItem from="1776312580181" duration="5906000" />
+      <workItem from="1776331537486" duration="34000" />
+      <workItem from="1776331583546" duration="9000" />
+      <workItem from="1776331712523" duration="37000" />
+      <workItem from="1776348483811" duration="84000" />
+      <workItem from="1776348798384" duration="1420000" />
+      <workItem from="1776391256813" duration="1000" />
     </task>
     <task id="LOCAL-00001" summary="搭建起来一个自己的框架">
       <option name="closed" value="true" />
