@@ -4,3 +4,6 @@ debuglog
 .venv 
 openocd.log
 openocd-*.log
+.zip
+*.zip
+*.tar.gz
