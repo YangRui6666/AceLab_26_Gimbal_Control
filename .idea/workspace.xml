@@ -24,6 +24,7 @@
       <config projectName="Gimbal_um" targetName="USB_Device_Library" />
       <config projectName="Gimbal_um" targetName="Gimbal_um" />
       <config projectName="Gimbal_um" targetName="STM32_Drivers" />
+      <config projectName="Gimbal_um" targetName="flash" />
     </generated>
   </component>
   <component name="CMakeSettings" AUTO_RELOAD="true">
@@ -35,9 +36,19 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="">
+    <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="在ctrltask加了负号，解决了傲娇云台">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/AGENTS.md" beforeDir="false" afterPath="$PROJECT_DIR$/AGENTS.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/imu_fusion.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/imu_fusion.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/imu_fusion.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/imu_fusion.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Task/debug_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/debug_task.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Task/state.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/state.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/gamepad_calibration.json" beforeDir="false" afterPath="$PROJECT_DIR$/tools/gamepad_calibration.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,7 +59,7 @@
     <option name="formatViaClangd" value="false" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="3041" />
+    <option name="cachedIndexableFilesCount" value="3044" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug - Debug" />
@@ -92,7 +103,7 @@
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;C/C++ 文件.scratch.cpp.executor&quot;: &quot;Run&quot;,
-    &quot;CMake 应用程序.Gimbal_um.executor&quot;: &quot;Debug&quot;,
+    &quot;CMake 应用程序.Gimbal_um.executor&quot;: &quot;Run&quot;,
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.RadMigrateCodeStyle&quot;: &quot;true&quot;,
@@ -131,6 +142,11 @@
     <option name="rtosEnabled" value="true" />
   </component>
   <component name="RunManager" selected="CMake 应用程序.Gimbal_um">
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="FreeRTOS" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Gimbal_um" TARGET_NAME="FreeRTOS" CONFIG_NAME="Debug - Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -151,6 +167,11 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration name="flash" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Gimbal_um" TARGET_NAME="flash" CONFIG_NAME="Debug - Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="scratch.cpp" type="CppFileRunConfiguration" factoryName="CppFileRunConfiguration" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Gimbal_um" TARGET_NAME="scratch.cpp" CONFIG_NAME="scratch.cpp">
       <option name="sourceFile" value="C:\Users\CORE\AppData\Roaming\JetBrains\CLion2025.3\scratches\scratch.cpp" />
       <method v="2">
@@ -158,11 +179,12 @@
       </method>
     </configuration>
     <list>
+      <item itemvalue="C/C++ 文件.scratch.cpp" />
       <item itemvalue="CMake 应用程序.FreeRTOS" />
+      <item itemvalue="CMake 应用程序.flash" />
       <item itemvalue="CMake 应用程序.Gimbal_um" />
       <item itemvalue="CMake 应用程序.STM32_Drivers" />
       <item itemvalue="CMake 应用程序.USB_Device_Library" />
-      <item itemvalue="C/C++ 文件.scratch.cpp" />
     </list>
     <recent_temporary>
       <list>
@@ -199,7 +221,16 @@
       <workItem from="1776331712523" duration="37000" />
       <workItem from="1776348483811" duration="84000" />
       <workItem from="1776348798384" duration="1420000" />
-      <workItem from="1776391256813" duration="1000" />
+      <workItem from="1776391256813" duration="311000" />
+      <workItem from="1776399272944" duration="31000" />
+      <workItem from="1776474962666" duration="2737000" />
+      <workItem from="1776485553387" duration="74000" />
+      <workItem from="1776496946589" duration="641000" />
+      <workItem from="1776852138077" duration="666000" />
+      <workItem from="1776857417279" duration="5575000" />
+      <workItem from="1776872509367" duration="833000" />
+      <workItem from="1776906039379" duration="3850000" />
+      <workItem from="1776912991690" duration="1766000" />
     </task>
     <task id="LOCAL-00001" summary="搭建起来一个自己的框架">
       <option name="closed" value="true" />
@@ -209,7 +240,15 @@
       <option name="project" value="LOCAL" />
       <updated>1775727723016</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="在ctrltask加了负号，解决了傲娇云台">
+      <option name="closed" value="true" />
+      <created>1776391556495</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1776391556496</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -233,18 +272,10 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="搭建起来一个自己的框架" />
-    <option name="LAST_COMMIT_MESSAGE" value="搭建起来一个自己的框架" />
+    <MESSAGE value="在ctrltask加了负号，解决了傲娇云台" />
+    <option name="LAST_COMMIT_MESSAGE" value="在ctrltask加了负号，解决了傲娇云台" />
   </component>
   <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/Core/Src/main.c</url>
-          <line>121</line>
-          <option name="timeStamp" value="63" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
     <watches-manager>
       <configuration name="CMakeRunConfiguration">
         <watch expression="pitch_state" />

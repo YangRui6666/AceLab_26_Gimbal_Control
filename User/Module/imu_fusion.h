@@ -5,6 +5,8 @@
 #ifndef GIMBAL_UM_IMU_FUSION_H
 #define GIMBAL_UM_IMU_FUSION_H
 
+#include <stdbool.h>
+
 typedef struct imu_data_t {
     float yaw;    // 单位：deg
     float pitch;  // 单位：deg
@@ -18,7 +20,7 @@ extern "C" {
 void imu_init(void);
 void imu_update(void);
 void imu_get_data(imu_data_t *imu_data);
-bool imu_check();
+bool imu_attitude_ready(void);
 
 #ifdef __cplusplus
 }

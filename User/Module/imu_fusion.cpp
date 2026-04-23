@@ -147,3 +147,8 @@ void imu_get_data(imu_data_t *imu_data)
 
     *imu_data = g_imu_data;
 }
+
+bool imu_attitude_ready(void)
+{
+    return s_imu_online && s_bias_ready;
+}

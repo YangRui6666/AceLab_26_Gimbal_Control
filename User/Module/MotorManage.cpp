@@ -22,9 +22,10 @@ constexpr float k_tick_to_s = 0.001f;
 constexpr int16_t k_current_cmd_limit = 10000;
 constexpr float k_yaw_limit_min_deg = -60.0f;
 constexpr float k_yaw_limit_max_deg = 60.0f;
+constexpr float k_yaw_limit_margin_deg = 1.0f;
 constexpr float k_pitch_zero_abs_deg = 60.0f;
-constexpr float k_pitch_limit_min_deg = -40.0f;
-constexpr float k_pitch_limit_max_deg = 30.0f;
+constexpr float k_pitch_limit_min_deg = -10.0f;
+constexpr float k_pitch_limit_max_deg = 40.0f;
 
 int16_t clamp_current_cmd(float value, int16_t limit)
 {
@@ -44,6 +45,23 @@ int16_t clamp_current_cmd(float value, int16_t limit)
     }
 
     return static_cast<int16_t>(value - 0.5f);
+}
+
+bool yaw_is_pushing_outward(float yaw_joint_deg, int16_t yaw_current_cmd)
+{
+    if ((yaw_joint_deg >= (k_yaw_limit_max_deg - k_yaw_limit_margin_deg)) &&
+        (yaw_current_cmd > 0))
+    {
+        return true;
+    }
+
+    if ((yaw_joint_deg <= (k_yaw_limit_min_deg + k_yaw_limit_margin_deg)) &&
+        (yaw_current_cmd < 0))
+    {
+        return true;
+    }
+
+    return false;
 }
 
 float compute_measured_dt_s(uint32_t now_tick_ms, uint32_t &last_tick_ms, float default_dt_s)
@@ -110,7 +128,10 @@ void MotorManage::send_can_cmd()
     bsp_tx(0x1FF, tx_data, sizeof(tx_data));
 }
 
-void MotorManage::set(float yaw_target, float pitch_target)
+void MotorManage::set_world_target(float yaw_target_deg,
+                                   float pitch_target_deg,
+                                   float yaw_meas_deg,
+                                   float pitch_meas_deg)
 {
 #define DDEBUG_ALL_ON
 #ifdef DDEBUG_ALL_ON
@@ -122,6 +143,7 @@ void MotorManage::set(float yaw_target, float pitch_target)
     volatile static int kp_debug_yaw = 18;
     volatile static int ki_debug_yaw = 5;
     volatile static int kd_debug_yaw = 0;
+    volatile static float kff_debug_yaw_speed = 0.08f;
     yaw_pid_location_.set_kp(kp_debug_yaw);
     yaw_pid_location_.set_ki(ki_debug_yaw);
     yaw_pid_location_.set_kd(kd_debug_yaw);
@@ -138,6 +160,7 @@ void MotorManage::set(float yaw_target, float pitch_target)
     volatile static int kp_debug_pitch = 18;
     volatile static int ki_debug_pitch = 4;
     volatile static int kd_debug_pitch = 0;
+    volatile static float kff_debug_pitch_speed = 0.08f;
     pitch_pid_location_.set_kp(kp_debug_pitch);
     pitch_pid_location_.set_ki(ki_debug_pitch);
     pitch_pid_location_.set_kd(kd_debug_pitch);
@@ -184,11 +207,10 @@ void MotorManage::set(float yaw_target, float pitch_target)
     const bool yaw_online = yaw_.check(ticks);
     const bool pitch_online = pitch_.check(ticks);
 #endif
-    const float yaw_target_clamped = clamp_target_deg(yaw_target, k_yaw_limit_min_deg, k_yaw_limit_max_deg);
-    const float pitch_target_internal = -pitch_target;
-    const float pitch_target_clamped = clamp_target_deg(pitch_target_internal, k_pitch_limit_min_deg, k_pitch_limit_max_deg);
-    const float yaw_meas_joint_deg = (yaw_zero_ready_ && yaw_.has_feedback()) ? yaw_motor_to_joint_deg(yaw_state.angle_deg) : 0.0f;
-    const float pitch_meas_joint_deg = pitch_.has_feedback() ? pitch_motor_to_joint_deg(pitch_state.angle_deg) : 0.0f;
+    const float yaw_target_clamped = clamp_target_deg(yaw_target_deg, k_yaw_limit_min_deg, k_yaw_limit_max_deg);
+    const float pitch_target_clamped = clamp_target_deg(pitch_target_deg, k_pitch_limit_min_deg, k_pitch_limit_max_deg);
+    const float yaw_meas_world_deg = clamp_target_deg(yaw_meas_deg, k_yaw_limit_min_deg, k_yaw_limit_max_deg);
+    const float pitch_meas_world_deg = clamp_target_deg(pitch_meas_deg, k_pitch_limit_min_deg, k_pitch_limit_max_deg);
 
     float yaw_speed_target = yaw_speed_target_cache_;
     float pitch_speed_target = pitch_speed_target_cache_;
@@ -205,14 +227,28 @@ void MotorManage::set(float yaw_target, float pitch_target)
     }
     else
     {
+        const float yaw_joint_deg = yaw_motor_to_joint_deg(yaw_state.angle_deg);
+
         if (run_outer_loop)
         {
-            yaw_speed_target_cache_ = yaw_pid_location_.calculate(yaw_target_clamped, yaw_meas_joint_deg, outer_dt_s);
+            yaw_speed_target_cache_ = yaw_pid_location_.calculate(yaw_target_clamped, yaw_meas_world_deg, outer_dt_s);
         }
 
         yaw_speed_target = yaw_speed_target_cache_;
-        yaw_current_target = yaw_pid_speed_.calculate(yaw_speed_target, yaw_state.speed_dps, inner_dt_s);
+        yaw_current_target = yaw_pid_speed_.calculate(yaw_speed_target, yaw_state.speed_dps, inner_dt_s) +
+                             kff_debug_yaw_speed * yaw_speed_target;
         yaw_current_cmd = clamp_current_cmd(yaw_current_target, k_current_cmd_limit);
+
+        if (yaw_is_pushing_outward(yaw_joint_deg, yaw_current_cmd))
+        {
+            yaw_pid_location_.reset();
+            yaw_pid_speed_.reset();
+            yaw_speed_target_cache_ = 0.0f;
+            yaw_speed_target = 0.0f;
+            yaw_current_target = 0.0f;
+            yaw_current_cmd = 0;
+        }
+
         yaw_.set_target_speed_dps(yaw_speed_target);
         yaw_.set_target_current(yaw_current_cmd);
     }
@@ -227,11 +263,13 @@ void MotorManage::set(float yaw_target, float pitch_target)
     {
         if (run_outer_loop)
         {
-            pitch_speed_target_cache_ = pitch_pid_location_.calculate(pitch_target_clamped, pitch_meas_joint_deg, outer_dt_s);
+            // Pitch 电机正方向与 IMU/world pitch 正方向相反，外环输出需映射回电机速度方向。
+            pitch_speed_target_cache_ = -pitch_pid_location_.calculate(pitch_target_clamped, pitch_meas_world_deg, outer_dt_s);
         }
 
         pitch_speed_target = pitch_speed_target_cache_;
-        pitch_current_target = pitch_pid_speed_.calculate(pitch_speed_target, pitch_state.speed_dps, inner_dt_s);
+        pitch_current_target = pitch_pid_speed_.calculate(pitch_speed_target, pitch_state.speed_dps, inner_dt_s) +
+                               kff_debug_pitch_speed * pitch_speed_target;
         pitch_current_cmd = clamp_current_cmd(pitch_current_target, k_current_cmd_limit);
         pitch_.set_target_speed_dps(pitch_speed_target);
         pitch_.set_target_current(pitch_current_cmd);
@@ -246,8 +284,8 @@ void MotorManage::set(float yaw_target, float pitch_target)
     g_motor_manage_debug.pitch_current_pid = pitch_current_target;
     g_motor_manage_debug.yaw_current_cmd = yaw_.get_target().target_current;
     g_motor_manage_debug.pitch_current_cmd = pitch_.get_target().target_current;
-    g_motor_manage_debug.yaw_angle_meas_deg = yaw_meas_joint_deg;
-    g_motor_manage_debug.pitch_angle_meas_deg = pitch_meas_joint_deg;
+    g_motor_manage_debug.yaw_angle_meas_deg = yaw_meas_world_deg;
+    g_motor_manage_debug.pitch_angle_meas_deg = pitch_meas_world_deg;
     g_motor_manage_debug.yaw_speed_meas_dps = yaw_state.speed_dps;
     g_motor_manage_debug.pitch_speed_meas_dps = pitch_state.speed_dps;
     g_motor_manage_debug.yaw_current_meas = yaw_state.current;

@@ -87,3 +87,68 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
     # Add user defined libraries
 )
+
+set(OPENOCD_TOOL_ROOT "${CMAKE_SOURCE_DIR}/tools/openocd")
+set(OPENOCD_INTERFACE_CFG "interface/stlink.cfg" CACHE STRING "OpenOCD interface configuration file")
+set(OPENOCD_TARGET_CFG "target/stm32f4x.cfg" CACHE STRING "OpenOCD target configuration file")
+set(OPENOCD_ADAPTER_SPEED "4000" CACHE STRING "OpenOCD adapter speed in kHz")
+set(OPENOCD_FLASH_FILE "$<TARGET_FILE:${CMAKE_PROJECT_NAME}>" CACHE STRING "Firmware image flashed by the flash target")
+
+if(CMAKE_HOST_WIN32)
+    set(OPENOCD_EXECUTABLE "${OPENOCD_TOOL_ROOT}/windows/bin/openocd.exe")
+    set(OPENOCD_SCRIPTS_DIR "${OPENOCD_TOOL_ROOT}/windows/openocd/scripts")
+elseif(CMAKE_HOST_UNIX AND NOT CMAKE_HOST_APPLE)
+    set(OPENOCD_EXECUTABLE "${OPENOCD_TOOL_ROOT}/linux/bin/openocd")
+    set(OPENOCD_SCRIPTS_DIR "${OPENOCD_TOOL_ROOT}/linux/openocd/scripts")
+    set(OPENOCD_LIBRARY_DIR "${OPENOCD_TOOL_ROOT}/linux/libexec")
+else()
+    message(FATAL_ERROR "Bundled OpenOCD only supports Windows and Linux hosts.")
+endif()
+
+if(NOT EXISTS "${OPENOCD_EXECUTABLE}")
+    message(FATAL_ERROR
+        "Bundled OpenOCD executable not found for this host: ${OPENOCD_EXECUTABLE}\n"
+        "Please make sure the repository includes tools/openocd for your platform."
+    )
+endif()
+
+if(NOT EXISTS "${OPENOCD_SCRIPTS_DIR}")
+    message(FATAL_ERROR
+        "Bundled OpenOCD scripts directory not found for this host: ${OPENOCD_SCRIPTS_DIR}\n"
+        "Please make sure the repository includes the matching OpenOCD scripts."
+    )
+endif()
+
+set(OPENOCD_FLASH_COMMAND
+    "${OPENOCD_EXECUTABLE}"
+    -s "${OPENOCD_SCRIPTS_DIR}"
+    -f "${OPENOCD_INTERFACE_CFG}"
+    -f "${OPENOCD_TARGET_CFG}"
+    -c "adapter speed ${OPENOCD_ADAPTER_SPEED}"
+    -c "program ${OPENOCD_FLASH_FILE} verify reset exit"
+)
+
+if(CMAKE_HOST_UNIX AND NOT CMAKE_HOST_APPLE)
+    if(NOT EXISTS "${OPENOCD_LIBRARY_DIR}")
+        message(FATAL_ERROR
+            "Bundled OpenOCD runtime directory not found for Linux host: ${OPENOCD_LIBRARY_DIR}\n"
+            "Please make sure the repository includes the matching OpenOCD runtime libraries."
+        )
+    endif()
+
+    add_custom_target(flash
+        COMMAND "${CMAKE_COMMAND}" -E env
+            "LD_LIBRARY_PATH=${OPENOCD_LIBRARY_DIR}:$ENV{LD_LIBRARY_PATH}"
+            ${OPENOCD_FLASH_COMMAND}
+        DEPENDS ${CMAKE_PROJECT_NAME}
+        USES_TERMINAL
+        COMMENT "Flashing ${CMAKE_PROJECT_NAME} with bundled OpenOCD"
+    )
+else()
+    add_custom_target(flash
+        COMMAND ${OPENOCD_FLASH_COMMAND}
+        DEPENDS ${CMAKE_PROJECT_NAME}
+        USES_TERMINAL
+        COMMENT "Flashing ${CMAKE_PROJECT_NAME} with bundled OpenOCD"
+    )
+endif()

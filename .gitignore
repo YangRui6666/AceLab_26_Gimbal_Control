@@ -2,3 +2,5 @@ build
 .idea
 debuglog
 .venv 
+openocd.log
+openocd-*.log

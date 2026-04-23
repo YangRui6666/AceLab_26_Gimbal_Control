@@ -1,5 +1,8 @@
 # Repository Guidelines
 
+## Priority
+The instructions in this file are the highest-priority repository rules for this workspace. In case of conflict, follow the strictest boundary and do not widen the user's requested scope.
+
 ## Project Structure & Module Organization
 `User/` contains project-owned firmware logic: `Bsp/` for peripheral wrappers, `Device/` for hardware-facing classes such as `GM6020`, `Module/` for control algorithms like `PID` and IMU fusion, `Task/` for FreeRTOS tasks, and `Library/` for local supporting code. `Core/`, `USB_DEVICE/`, `Drivers/`, and `Middlewares/` are STM32CubeMX or ST-provided trees; prefer edits inside `/* USER CODE BEGIN */` blocks or regenerate from `Gimbal_um.ioc`. `cmake/` holds the ARM GCC toolchain and CubeMX CMake glue. `build/` is generated output and not source of truth.
 
@@ -14,6 +17,9 @@ Prefix shell commands with `rtk` as described in `RTK.md`.
 
 ## Coding Style & Naming Conventions
 Follow `ace代码规范.md`: use 4-space indentation, put braces on their own lines, keep spaces around operators, and avoid multiple blank lines. Prefer lower_snake_case for C files, functions, and structs, with `_t` suffixes for struct typedefs. Keep existing C++ class names, such as `MotorManage` and `GM6020`, consistent with the current codebase. Declare public APIs in headers and add short Doxygen comments when behavior is not obvious from the implementation.
+
+## Change Boundaries
+Only modify the files, functions, or lines the user explicitly asked for. Do not expand a local fix into broader refactors, rollbacks, interface changes, or adjacent logic changes unless the user clearly authorizes that scope first. Preserve unrelated worktree changes and treat "just fix this one spot" as a hard boundary.
 
 ## Testing Guidelines
 No automated unit tests are committed in the source tree today. At minimum, require a clean Debug build before merging. For changes in control, CAN, USB, or IMU paths, record bench validation on STM32F405 hardware, including task timing, motor response, and peripheral bring-up observations.

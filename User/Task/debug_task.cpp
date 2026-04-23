@@ -14,7 +14,6 @@
 #include "MotorManage.h"
 #include "imu_fusion.h"
 
-
 float gen_step_target(float step_deg)
 {
     // tick 假设 1ms
@@ -48,7 +47,7 @@ extern "C" void StartdddebugTask(void *argument)
 {
     /* USER CODE BEGIN StartCtrlTask */
     /* Infinite loop */
-    osDelay(osWaitForever);
+    //  osDelay(osWaitForever);
     
     (void)argument;
 
@@ -73,14 +72,17 @@ extern "C" void StartdddebugTask(void *argument)
 
         targ_pitch = motor_manage.get_pitch_target();
         targ_yaw = motor_manage.get_yaw_target();
-        (void)imu_check();
+        (void)imu_attitude_ready();
         motor_manage.update_feedback();
         (void)can_check(0x206);
-        // motor_manage.set(0,gen_sin_target(10.0f, 0.5f));
-        // motor_manage.set(0, gen_step_target(20.0f));
-        // motor_manage.set(30.f, 0.0f);
-        motor_manage.set(gen_sin_target(10.0f, 0.5f),-10.0f);
-        // motor_manage.set(gen_step_target(60.0f), 0);
+        // motor_manage.set_world_target(0, gen_sin_target(10.0f, 0.5f), imu_data_fusion.yaw, imu_data_fusion.pitch);
+        // motor_manage.set_world_target(0, gen_step_target(20.0f), imu_data_fusion.yaw, imu_data_fusion.pitch);
+        // motor_manage.set_world_target(30.f, 0.0f, imu_data_fusion.yaw, imu_data_fusion.pitch);
+        motor_manage.set_world_target(gen_step_target(25.0f),
+                                      10.0f,
+                                      imu_data_fusion.yaw,
+                                      imu_data_fusion.pitch);
+        // motor_manage.set_world_target(gen_step_target(60.0f), 0, imu_data_fusion.yaw, imu_data_fusion.pitch);
         motor_manage.send_can_cmd();
 
         vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(1));
