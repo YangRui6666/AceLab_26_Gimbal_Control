@@ -25,6 +25,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "gimbal_rtos.h"
 
 /* USER CODE END Includes */
 

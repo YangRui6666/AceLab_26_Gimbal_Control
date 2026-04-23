@@ -53,9 +53,11 @@ bool bsp_can_init(void)
     can_filter.FilterBank = 0;
     can_filter.FilterMode = CAN_FILTERMODE_IDLIST;
     can_filter.FilterScale = CAN_FILTERSCALE_32BIT;
+    // 32-bit ID list mode uses FR1 as the first 32-bit ID and FR2 as the second.
+    // For standard frames, the 11-bit ID is placed in the high halfword (shifted by 5).
     can_filter.FilterIdHigh = (CAN_STDID_GIMBAL_YAW_FB << 5);
-    can_filter.FilterIdLow = (CAN_STDID_GIMBAL_PITCH_FB << 5);
-    can_filter.FilterMaskIdHigh = 0x0000;
+    can_filter.FilterIdLow = 0x0000;
+    can_filter.FilterMaskIdHigh = (CAN_STDID_GIMBAL_PITCH_FB << 5);
     can_filter.FilterMaskIdLow = 0x0000;
     can_filter.FilterFIFOAssignment = CAN_RX_FIFO0;
     can_filter.FilterActivation = ENABLE;

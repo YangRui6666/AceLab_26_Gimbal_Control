@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"D:/ACE/AceLab_26_Gimbal_Control/code/Gimbalv2/build/Debug/cmake_install.cmake",
+		"D:/ACE/AceLab_26_Gimbal_Control/code/Gimbalv2/build/Debug/cmake/stm32cubemx/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
