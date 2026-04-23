@@ -47,7 +47,7 @@ extern "C" void StartdddebugTask(void *argument)
 {
     /* USER CODE BEGIN StartCtrlTask */
     /* Infinite loop */
-    //  osDelay(osWaitForever);
+      osDelay(osWaitForever);
     
     (void)argument;
 

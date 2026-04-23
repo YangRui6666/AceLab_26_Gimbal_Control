@@ -41,6 +41,13 @@ cmake --build --preset Release --target flash
 -DOPENOCD_FLASH_FILE=<默认是当前 Gimbal_um 目标文件>
 ```
 
+如果你使用的是 `DAPLink / CMSIS-DAP + STM32F405xx`，可以改成：
+
+```bash
+-DOPENOCD_INTERFACE_CFG=interface/daplink.cfg
+-DOPENOCD_TARGET_CFG=target/stm32f4x.cfg
+```
+
 示例：
 
 ```bash

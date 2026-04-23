@@ -89,7 +89,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 )
 
 set(OPENOCD_TOOL_ROOT "${CMAKE_SOURCE_DIR}/tools/openocd")
-set(OPENOCD_INTERFACE_CFG "interface/stlink.cfg" CACHE STRING "OpenOCD interface configuration file")
+set(OPENOCD_INTERFACE_CFG "interface/daplink.cfg" CACHE STRING "OpenOCD interface configuration file")
 set(OPENOCD_TARGET_CFG "target/stm32f4x.cfg" CACHE STRING "OpenOCD target configuration file")
 set(OPENOCD_ADAPTER_SPEED "4000" CACHE STRING "OpenOCD adapter speed in kHz")
 set(OPENOCD_FLASH_FILE "$<TARGET_FILE:${CMAKE_PROJECT_NAME}>" CACHE STRING "Firmware image flashed by the flash target")

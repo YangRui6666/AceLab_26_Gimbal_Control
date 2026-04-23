@@ -272,10 +272,10 @@ void ctrl_apply_auto_aim_delta(void)
         return;
     }
 
-    ctrl_ctx.yaw_world_target = clampf(ctrl_ctx.yaw_world_target + ctrl_ctx.auto_aim_delta_yaw,
+    ctrl_ctx.yaw_world_target = clampf(ctrl_ctx.current_attitude.yaw + ctrl_ctx.auto_aim_delta_yaw,
                                        k_yaw_limit_min_deg,
                                        k_yaw_limit_max_deg);
-    ctrl_ctx.pitch_world_target = clampf(ctrl_ctx.pitch_world_target + ctrl_ctx.auto_aim_delta_pitch,
+    ctrl_ctx.pitch_world_target = clampf(ctrl_ctx.current_attitude.pitch + ctrl_ctx.auto_aim_delta_pitch,
                                          k_pitch_limit_min_deg,
                                          k_pitch_limit_max_deg);
     ctrl_ctx.auto_aim_delta_yaw = 0.0f;
@@ -432,13 +432,13 @@ extern "C" void StartCtrlTask(void *argument)
     //  不要删掉这行！！！
     //  osDelay函数的设计目的是阻塞当前程序
 #if k_ctrl_task_debug_block
-    osDelay(osWaitForever);
+    //osDelay(osWaitForever);
 #endif
     //  不要删掉这行！现在在跑debug任务！
 
     for (;;)
     {
-        osDelay(osWaitForever);
+        //osDelay(osWaitForever);
         const uint32_t now_tick = osKernelGetTickCount();
         bool send_lock_feedback = false;
 
