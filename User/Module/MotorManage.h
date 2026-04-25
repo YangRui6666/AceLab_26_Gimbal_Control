@@ -17,14 +17,30 @@ typedef struct
 {
     float yaw_angle_t;
     float pitch_angle_t;
+    float yaw_planned_angle_t;
+    float pitch_planned_angle_t;
 
     float yaw_speed_t;
     float pitch_speed_t;
+    float yaw_planned_speed_t;
+    float pitch_planned_speed_t;
+    float yaw_planned_acc_t;
+    float pitch_planned_acc_t;
 
     float yaw_current_pid;
     float pitch_current_pid;
     float yaw_current_ff;
     float pitch_current_ff;
+    float yaw_hold_ff;
+    float pitch_hold_ff;
+    float yaw_boot_bias_ff;
+    float pitch_boot_bias_ff;
+    float yaw_vel_ff;
+    float pitch_vel_ff;
+    float yaw_acc_ff;
+    float pitch_acc_ff;
+    float yaw_ff_total;
+    float pitch_ff_total;
     int16_t yaw_current_cmd;
     int16_t pitch_current_cmd;
 
@@ -52,7 +68,8 @@ public:
     void set_world_target(float yaw_target_deg,
                           float pitch_target_deg,
                           float yaw_meas_deg,
-                          float pitch_meas_deg);
+                          float pitch_meas_deg,
+                          bool enable_planner);
     void lock();
 
     GM6020::Target get_yaw_target() const;
@@ -69,9 +86,40 @@ public:
     PID pitch_pid_location_;
 
 private:
+    struct PlannerAxisState
+    {
+        float planned_pos_deg;
+        float planned_vel_dps;
+        float planned_acc_dps2;
+        bool initialized;
+    };
+
+    struct FeedforwardAxisState
+    {
+        float hold_ff;
+        float boot_bias_ff;
+        float vel_ff;
+        float acc_ff;
+        float ff_total;
+    };
+
+    struct PlannerAxisConfig
+    {
+        float max_vel_dps;
+        float max_acc_dps2;
+        float k_vel_ff;
+    };
+
     static float clamp_target_deg(float value, float min_value, float max_value);
     float yaw_motor_to_joint_deg(float motor_angle_deg) const;
     static float pitch_motor_to_joint_deg(float motor_angle_deg);
+    static void clear_feedforward_state(FeedforwardAxisState *ff_state);
+    static void clear_planner_state(PlannerAxisState *planner_state);
+    static void sync_planner_state(PlannerAxisState *planner_state, float measured_pos_deg);
+    static void update_planner_state(PlannerAxisState *planner_state,
+                                     float target_pos_deg,
+                                     float dt_s,
+                                     const PlannerAxisConfig &config);
     void hold_yaw_axis();
     void hold_pitch_axis();
 
@@ -82,6 +130,12 @@ private:
     uint32_t last_outer_tick_ms_;
     float yaw_speed_target_cache_;
     float pitch_speed_target_cache_;
+    PlannerAxisState yaw_planner_state_;
+    PlannerAxisState pitch_planner_state_;
+    FeedforwardAxisState yaw_ff_state_;
+    FeedforwardAxisState pitch_ff_state_;
+    PlannerAxisConfig yaw_planner_config_;
+    PlannerAxisConfig pitch_planner_config_;
 };
 
 #endif // GIMBAL_UM_MOTORMANAGE_H

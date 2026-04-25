@@ -149,7 +149,6 @@ extern "C" void StartdddebugTask(void *argument)
     {
         imu_update();
         imu_get_data(&imu_data_fusion);
-        static int abc = 0;
 
         targ_pitch = motor_manage.get_pitch_target();
         targ_yaw = motor_manage.get_yaw_target();
@@ -163,7 +162,8 @@ extern "C" void StartdddebugTask(void *argument)
         motor_manage.set_world_target(yaw_test,
                                       0.0f,
                                       imu_data_fusion.yaw,
-                                      imu_data_fusion.pitch);
+                                      imu_data_fusion.pitch,
+                                      true);
         // motor_manage.set_world_target(gen_sin_target(20.0f,0.5f),
         //                               0.0f,
         //                               imu_data_fusion.yaw,

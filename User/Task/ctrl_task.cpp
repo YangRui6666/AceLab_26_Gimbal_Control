@@ -570,11 +570,15 @@ extern "C" void StartCtrlTask(void *argument)
         ctrl_ctx.pitch_world_target = clampf(ctrl_ctx.pitch_world_target,
                                              k_pitch_limit_min_deg,
                                              k_pitch_limit_max_deg);
+        const bool enable_planner =
+            (ctrl_ctx.work_mode == WORK_MODE_STABLE) ||
+            (ctrl_ctx.work_mode == WORK_MODE_AUTO_AIM);
 
         motor_manage.set_world_target(ctrl_ctx.yaw_world_target,
                                       ctrl_ctx.pitch_world_target,
                                       ctrl_ctx.current_attitude.yaw,
-                                      ctrl_ctx.current_attitude.pitch);
+                                      ctrl_ctx.current_attitude.pitch,
+                                      enable_planner);
         motor_manage.send_can_cmd();
         ctrl_send_status_if_due(now_tick, imu_data);
 

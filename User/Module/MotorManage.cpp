@@ -2,6 +2,8 @@
 // Created by CORE on 2026/4/9.
 //
 
+#include <cmath>
+
 #include "MotorManage.h"
 
 #include "cmsis_os2.h"
@@ -26,6 +28,28 @@ constexpr float k_yaw_limit_margin_deg = 1.0f;
 constexpr float k_pitch_zero_abs_deg = 60.0f;
 constexpr float k_pitch_limit_min_deg = -10.0f;
 constexpr float k_pitch_limit_max_deg = 40.0f;
+constexpr float k_planner_pos_snap_deg = 0.01f;
+constexpr float k_planner_vel_snap_dps = 0.1f;
+
+float absf(float value)
+{
+    return (value >= 0.0f) ? value : -value;
+}
+
+float signf(float value)
+{
+    if (value > 0.0f)
+    {
+        return 1.0f;
+    }
+
+    if (value < 0.0f)
+    {
+        return -1.0f;
+    }
+
+    return 0.0f;
+}
 
 int16_t clamp_current_cmd(float value, int16_t limit)
 {
@@ -98,7 +122,13 @@ MotorManage::MotorManage()
       last_inner_tick_ms_(0U),
       last_outer_tick_ms_(0U),
       yaw_speed_target_cache_(0.0f),
-      pitch_speed_target_cache_(0.0f)
+      pitch_speed_target_cache_(0.0f),
+      yaw_planner_state_{0.0f, 0.0f, 0.0f, false},
+      pitch_planner_state_{0.0f, 0.0f, 0.0f, false},
+      yaw_ff_state_{0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+      pitch_ff_state_{0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+      yaw_planner_config_{180.0f, 720.0f, 20.0f},
+      pitch_planner_config_{120.0f, 480.0f, 0.08f}
 {
     yaw_.init();
     pitch_.init();
@@ -128,10 +158,135 @@ void MotorManage::send_can_cmd()
     bsp_tx(0x1FF, tx_data, sizeof(tx_data));
 }
 
+void MotorManage::clear_feedforward_state(FeedforwardAxisState *ff_state)
+{
+    if (ff_state == nullptr)
+    {
+        return;
+    }
+
+    ff_state->hold_ff = 0.0f;
+    ff_state->boot_bias_ff = 0.0f;
+    ff_state->vel_ff = 0.0f;
+    ff_state->acc_ff = 0.0f;
+    ff_state->ff_total = 0.0f;
+}
+
+void MotorManage::clear_planner_state(PlannerAxisState *planner_state)
+{
+    if (planner_state == nullptr)
+    {
+        return;
+    }
+
+    planner_state->planned_pos_deg = 0.0f;
+    planner_state->planned_vel_dps = 0.0f;
+    planner_state->planned_acc_dps2 = 0.0f;
+    planner_state->initialized = false;
+}
+
+void MotorManage::sync_planner_state(PlannerAxisState *planner_state, float measured_pos_deg)
+{
+    if (planner_state == nullptr)
+    {
+        return;
+    }
+
+    planner_state->planned_pos_deg = measured_pos_deg;
+    planner_state->planned_vel_dps = 0.0f;
+    planner_state->planned_acc_dps2 = 0.0f;
+    planner_state->initialized = true;
+}
+
+void MotorManage::update_planner_state(PlannerAxisState *planner_state,
+                                       float target_pos_deg,
+                                       float dt_s,
+                                       const PlannerAxisConfig &config)
+{
+    if ((planner_state == nullptr) || !planner_state->initialized)
+    {
+        return;
+    }
+
+    const float limited_dt_s = (dt_s > 0.0f) ? dt_s : k_inner_dt_default_s;
+    const float pos_error_deg = target_pos_deg - planner_state->planned_pos_deg;
+    const float abs_pos_error_deg = absf(pos_error_deg);
+    const float abs_planned_vel_dps = absf(planner_state->planned_vel_dps);
+
+    if ((abs_pos_error_deg <= k_planner_pos_snap_deg) &&
+        (abs_planned_vel_dps <= k_planner_vel_snap_dps))
+    {
+        planner_state->planned_pos_deg = target_pos_deg;
+        planner_state->planned_vel_dps = 0.0f;
+        planner_state->planned_acc_dps2 = 0.0f;
+        return;
+    }
+
+    const float direction = signf(pos_error_deg);
+    const float stop_distance_deg =
+        (planner_state->planned_vel_dps * planner_state->planned_vel_dps) /
+        (2.0f * config.max_acc_dps2);
+    float desired_acc_dps2 = 0.0f;
+
+    if ((abs_pos_error_deg <= stop_distance_deg) && (abs_planned_vel_dps > 0.0f))
+    {
+        desired_acc_dps2 = -signf(planner_state->planned_vel_dps) * config.max_acc_dps2;
+    }
+    else if (direction != 0.0f)
+    {
+        const float vel_error_dps = (direction * config.max_vel_dps) - planner_state->planned_vel_dps;
+
+        if (absf(vel_error_dps) <= (config.max_acc_dps2 * limited_dt_s))
+        {
+            desired_acc_dps2 = vel_error_dps / limited_dt_s;
+        }
+        else
+        {
+            desired_acc_dps2 = direction * config.max_acc_dps2;
+        }
+    }
+
+    float next_vel_dps = planner_state->planned_vel_dps + (desired_acc_dps2 * limited_dt_s);
+    if (next_vel_dps > config.max_vel_dps)
+    {
+        next_vel_dps = config.max_vel_dps;
+    }
+    else if (next_vel_dps < -config.max_vel_dps)
+    {
+        next_vel_dps = -config.max_vel_dps;
+    }
+
+    if ((planner_state->planned_vel_dps > 0.0f) && (next_vel_dps < 0.0f))
+    {
+        next_vel_dps = 0.0f;
+    }
+    else if ((planner_state->planned_vel_dps < 0.0f) && (next_vel_dps > 0.0f))
+    {
+        next_vel_dps = 0.0f;
+    }
+
+    float next_pos_deg = planner_state->planned_pos_deg +
+                         (planner_state->planned_vel_dps * limited_dt_s) +
+                         (0.5f * desired_acc_dps2 * limited_dt_s * limited_dt_s);
+    const float remain_error_deg = target_pos_deg - next_pos_deg;
+
+    if ((direction != 0.0f) && (signf(remain_error_deg) != direction))
+    {
+        next_pos_deg = target_pos_deg;
+        next_vel_dps = 0.0f;
+        desired_acc_dps2 = 0.0f;
+    }
+
+    planner_state->planned_pos_deg = next_pos_deg;
+    planner_state->planned_vel_dps = next_vel_dps;
+    planner_state->planned_acc_dps2 = desired_acc_dps2;
+}
+
 void MotorManage::set_world_target(float yaw_target_deg,
                                    float pitch_target_deg,
                                    float yaw_meas_deg,
-                                   float pitch_meas_deg)
+                                   float pitch_meas_deg,
+                                   bool enable_planner)
 {
 #define DDEBUG_ALL_ON
 #ifdef DDEBUG_ALL_ON
@@ -143,7 +298,6 @@ void MotorManage::set_world_target(float yaw_target_deg,
     volatile static int kp_debug_yaw = 18;
     volatile static int ki_debug_yaw = 0;
     volatile static int kd_debug_yaw = 0;
-    volatile static float kff_debug_yaw_speed = 20.0f;
     yaw_pid_location_.set_kp(kp_debug_yaw);
     yaw_pid_location_.set_ki(ki_debug_yaw);
     yaw_pid_location_.set_kd(kd_debug_yaw);
@@ -160,7 +314,6 @@ void MotorManage::set_world_target(float yaw_target_deg,
     volatile static int kp_debug_pitch = 18;
     volatile static int ki_debug_pitch = 4;
     volatile static int kd_debug_pitch = 0;
-    volatile static float kff_debug_pitch_speed = 0.08f;
     pitch_pid_location_.set_kp(kp_debug_pitch);
     pitch_pid_location_.set_ki(ki_debug_pitch);
     pitch_pid_location_.set_kd(kd_debug_pitch);
@@ -211,83 +364,160 @@ void MotorManage::set_world_target(float yaw_target_deg,
     const float pitch_target_clamped = clamp_target_deg(pitch_target_deg, k_pitch_limit_min_deg, k_pitch_limit_max_deg);
     const float yaw_meas_world_deg = clamp_target_deg(yaw_meas_deg, k_yaw_limit_min_deg, k_yaw_limit_max_deg);
     const float pitch_meas_world_deg = clamp_target_deg(pitch_meas_deg, k_pitch_limit_min_deg, k_pitch_limit_max_deg);
+    float yaw_planned_pos = yaw_target_clamped;
+    float pitch_planned_pos = pitch_target_clamped;
+    float yaw_planned_vel = 0.0f;
+    float pitch_planned_vel = 0.0f;
+    float yaw_planned_acc = 0.0f;
+    float pitch_planned_acc = 0.0f;
 
     float yaw_speed_target = yaw_speed_target_cache_;
     float pitch_speed_target = pitch_speed_target_cache_;
     float yaw_current_target = 0.0f;
     float pitch_current_target = 0.0f;
-    float yaw_current_ff = 0.0f;
-    float pitch_current_ff = 0.0f;
     int16_t yaw_current_cmd = 0;
     int16_t pitch_current_cmd = 0;
 
     if (!yaw_zero_ready_ || !yaw_online)
     {
-        yaw_speed_target_cache_ = 0.0f;
-        yaw_speed_target = 0.0f;
         hold_yaw_axis();
+        yaw_speed_target = yaw_speed_target_cache_;
+        yaw_planned_pos = yaw_planner_state_.planned_pos_deg;
+        yaw_planned_vel = yaw_planner_state_.planned_vel_dps;
+        yaw_planned_acc = yaw_planner_state_.planned_acc_dps2;
     }
     else
     {
         const float yaw_joint_deg = yaw_motor_to_joint_deg(yaw_state.angle_deg);
 
+        if (!enable_planner)
+        {
+            sync_planner_state(&yaw_planner_state_, yaw_meas_world_deg);
+        }
+        else if (!yaw_planner_state_.initialized)
+        {
+            sync_planner_state(&yaw_planner_state_, yaw_meas_world_deg);
+        }
+
+        if (enable_planner)
+        {
+            update_planner_state(&yaw_planner_state_, yaw_target_clamped, inner_dt_s, yaw_planner_config_);
+            yaw_planned_pos = yaw_planner_state_.planned_pos_deg;
+            yaw_planned_vel = yaw_planner_state_.planned_vel_dps;
+            yaw_planned_acc = yaw_planner_state_.planned_acc_dps2;
+        }
+
         if (run_outer_loop)
         {
-            yaw_speed_target_cache_ = yaw_pid_location_.calculate(yaw_target_clamped, yaw_meas_world_deg, outer_dt_s);
+            const float yaw_pos_target_deg = enable_planner ? yaw_planned_pos : yaw_target_clamped;
+            yaw_speed_target_cache_ = yaw_pid_location_.calculate(yaw_pos_target_deg, yaw_meas_world_deg, outer_dt_s);
         }
 
         yaw_speed_target = yaw_speed_target_cache_;
         const float yaw_current_pid = yaw_pid_speed_.calculate(yaw_speed_target, yaw_state.speed_dps, inner_dt_s);
-        yaw_current_ff = kff_debug_yaw_speed * yaw_speed_target;
-        yaw_current_target = yaw_current_pid + yaw_current_ff;
+        clear_feedforward_state(&yaw_ff_state_);
+        yaw_ff_state_.vel_ff = yaw_planner_config_.k_vel_ff * yaw_planned_vel;
+        yaw_ff_state_.ff_total = yaw_ff_state_.hold_ff +
+                                 yaw_ff_state_.boot_bias_ff +
+                                 yaw_ff_state_.vel_ff +
+                                 yaw_ff_state_.acc_ff;
+        yaw_current_target = yaw_current_pid + yaw_ff_state_.ff_total;
         yaw_current_cmd = clamp_current_cmd(yaw_current_target, k_current_cmd_limit);
 
         if (yaw_is_pushing_outward(yaw_joint_deg, yaw_current_cmd))
         {
-            yaw_pid_location_.reset();
-            yaw_pid_speed_.reset();
-            yaw_speed_target_cache_ = 0.0f;
-            yaw_speed_target = 0.0f;
+            hold_yaw_axis();
             yaw_current_target = 0.0f;
             yaw_current_cmd = 0;
         }
 
         yaw_.set_target_speed_dps(yaw_speed_target);
         yaw_.set_target_current(yaw_current_cmd);
+
+        yaw_planned_pos = enable_planner ? yaw_planner_state_.planned_pos_deg : yaw_target_clamped;
+        yaw_planned_vel = enable_planner ? yaw_planner_state_.planned_vel_dps : 0.0f;
+        yaw_planned_acc = enable_planner ? yaw_planner_state_.planned_acc_dps2 : 0.0f;
     }
 
     if (!pitch_online)
     {
-        pitch_speed_target_cache_ = 0.0f;
-        pitch_speed_target = 0.0f;
         hold_pitch_axis();
+        pitch_speed_target = pitch_speed_target_cache_;
+        pitch_planned_pos = pitch_planner_state_.planned_pos_deg;
+        pitch_planned_vel = pitch_planner_state_.planned_vel_dps;
+        pitch_planned_acc = pitch_planner_state_.planned_acc_dps2;
     }
     else
     {
+        if (!enable_planner)
+        {
+            sync_planner_state(&pitch_planner_state_, pitch_meas_world_deg);
+        }
+        else if (!pitch_planner_state_.initialized)
+        {
+            sync_planner_state(&pitch_planner_state_, pitch_meas_world_deg);
+        }
+
+        if (enable_planner)
+        {
+            update_planner_state(&pitch_planner_state_, pitch_target_clamped, inner_dt_s, pitch_planner_config_);
+            pitch_planned_pos = pitch_planner_state_.planned_pos_deg;
+            pitch_planned_vel = pitch_planner_state_.planned_vel_dps;
+            pitch_planned_acc = pitch_planner_state_.planned_acc_dps2;
+        }
+
         if (run_outer_loop)
         {
             // Pitch 电机正方向与 IMU/world pitch 正方向相反，外环输出需映射回电机速度方向。
-            pitch_speed_target_cache_ = -pitch_pid_location_.calculate(pitch_target_clamped, pitch_meas_world_deg, outer_dt_s);
+            const float pitch_pos_target_deg = enable_planner ? pitch_planned_pos : pitch_target_clamped;
+            pitch_speed_target_cache_ = -pitch_pid_location_.calculate(pitch_pos_target_deg,
+                                                                       pitch_meas_world_deg,
+                                                                       outer_dt_s);
         }
 
         pitch_speed_target = pitch_speed_target_cache_;
         const float pitch_current_pid = pitch_pid_speed_.calculate(pitch_speed_target, pitch_state.speed_dps, inner_dt_s);
-        pitch_current_ff = kff_debug_pitch_speed * pitch_speed_target;
-        pitch_current_target = pitch_current_pid + pitch_current_ff;
+        clear_feedforward_state(&pitch_ff_state_);
+        pitch_ff_state_.vel_ff = pitch_planner_config_.k_vel_ff * (-pitch_planned_vel);
+        pitch_ff_state_.ff_total = pitch_ff_state_.hold_ff +
+                                   pitch_ff_state_.boot_bias_ff +
+                                   pitch_ff_state_.vel_ff +
+                                   pitch_ff_state_.acc_ff;
+        pitch_current_target = pitch_current_pid + pitch_ff_state_.ff_total;
         pitch_current_cmd = clamp_current_cmd(pitch_current_target, k_current_cmd_limit);
         pitch_.set_target_speed_dps(pitch_speed_target);
         pitch_.set_target_current(pitch_current_cmd);
+
+        pitch_planned_pos = enable_planner ? pitch_planner_state_.planned_pos_deg : pitch_target_clamped;
+        pitch_planned_vel = enable_planner ? pitch_planner_state_.planned_vel_dps : 0.0f;
+        pitch_planned_acc = enable_planner ? pitch_planner_state_.planned_acc_dps2 : 0.0f;
     }
 
 #ifdef DDBUG_DATA_ON
     g_motor_manage_debug.yaw_angle_t = yaw_target_clamped;
     g_motor_manage_debug.pitch_angle_t = pitch_target_clamped;
+    g_motor_manage_debug.yaw_planned_angle_t = yaw_planned_pos;
+    g_motor_manage_debug.pitch_planned_angle_t = pitch_planned_pos;
     g_motor_manage_debug.yaw_speed_t = yaw_speed_target;
     g_motor_manage_debug.pitch_speed_t = pitch_speed_target;
-    g_motor_manage_debug.yaw_current_pid = yaw_current_target - yaw_current_ff;
-    g_motor_manage_debug.pitch_current_pid = pitch_current_target - pitch_current_ff;
-    g_motor_manage_debug.yaw_current_ff = yaw_current_ff;
-    g_motor_manage_debug.pitch_current_ff = pitch_current_ff;
+    g_motor_manage_debug.yaw_planned_speed_t = yaw_planned_vel;
+    g_motor_manage_debug.pitch_planned_speed_t = pitch_planned_vel;
+    g_motor_manage_debug.yaw_planned_acc_t = yaw_planned_acc;
+    g_motor_manage_debug.pitch_planned_acc_t = pitch_planned_acc;
+    g_motor_manage_debug.yaw_current_pid = yaw_current_target - yaw_ff_state_.ff_total;
+    g_motor_manage_debug.pitch_current_pid = pitch_current_target - pitch_ff_state_.ff_total;
+    g_motor_manage_debug.yaw_current_ff = yaw_ff_state_.ff_total;
+    g_motor_manage_debug.pitch_current_ff = pitch_ff_state_.ff_total;
+    g_motor_manage_debug.yaw_hold_ff = yaw_ff_state_.hold_ff;
+    g_motor_manage_debug.pitch_hold_ff = pitch_ff_state_.hold_ff;
+    g_motor_manage_debug.yaw_boot_bias_ff = yaw_ff_state_.boot_bias_ff;
+    g_motor_manage_debug.pitch_boot_bias_ff = pitch_ff_state_.boot_bias_ff;
+    g_motor_manage_debug.yaw_vel_ff = yaw_ff_state_.vel_ff;
+    g_motor_manage_debug.pitch_vel_ff = pitch_ff_state_.vel_ff;
+    g_motor_manage_debug.yaw_acc_ff = yaw_ff_state_.acc_ff;
+    g_motor_manage_debug.pitch_acc_ff = pitch_ff_state_.acc_ff;
+    g_motor_manage_debug.yaw_ff_total = yaw_ff_state_.ff_total;
+    g_motor_manage_debug.pitch_ff_total = pitch_ff_state_.ff_total;
     g_motor_manage_debug.yaw_current_cmd = yaw_.get_target().target_current;
     g_motor_manage_debug.pitch_current_cmd = pitch_.get_target().target_current;
     g_motor_manage_debug.yaw_angle_meas_deg = yaw_meas_world_deg;
@@ -305,6 +535,10 @@ void MotorManage::lock()
 {
     uint8_t tx_data[8] = {0};
 
+    clear_planner_state(&yaw_planner_state_);
+    clear_planner_state(&pitch_planner_state_);
+    clear_feedforward_state(&yaw_ff_state_);
+    clear_feedforward_state(&pitch_ff_state_);
     hold_yaw_axis();
     hold_pitch_axis();
     bsp_tx(0xFE, tx_data, sizeof(tx_data));
@@ -370,6 +604,8 @@ void MotorManage::hold_yaw_axis()
     yaw_pid_location_.reset();
     yaw_pid_speed_.reset();
     yaw_speed_target_cache_ = 0.0f;
+    clear_planner_state(&yaw_planner_state_);
+    clear_feedforward_state(&yaw_ff_state_);
     yaw_.set_target_speed_dps(0.0f);
     yaw_.set_target_current(0);
 }
@@ -379,6 +615,8 @@ void MotorManage::hold_pitch_axis()
     pitch_pid_location_.reset();
     pitch_pid_speed_.reset();
     pitch_speed_target_cache_ = 0.0f;
+    clear_planner_state(&pitch_planner_state_);
+    clear_feedforward_state(&pitch_ff_state_);
     pitch_.set_target_speed_dps(0.0f);
     pitch_.set_target_current(0);
 }
