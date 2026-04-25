@@ -23,6 +23,8 @@ typedef struct
 
     float yaw_current_pid;
     float pitch_current_pid;
+    float yaw_current_ff;
+    float pitch_current_ff;
     int16_t yaw_current_cmd;
     int16_t pitch_current_cmd;
 

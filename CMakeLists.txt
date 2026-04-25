@@ -47,7 +47,9 @@ add_executable(${CMAKE_PROJECT_NAME}
         User/Task/communicate_task.cpp
         User/Module/MotorManage.h
         User/Module/imu_fusion.cpp
-        User/Task/debug_task.cpp)
+        User/Task/debug_task.cpp
+        User/Library/SEGGER_RTT.c
+        User/Library/SEGGER_RTT_printf.c)
 
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)

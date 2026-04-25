@@ -43,6 +43,9 @@ constexpr float k_search_global_pitch_center_deg = 15.0f;
 constexpr float k_search_global_pitch_amp_deg = 25.0f;
 constexpr uint32_t k_search_global_reentry_samples = 256U;
 
+/**
+ * @brief 将数值限制在指定范围内。
+ */
 float clampf(float value, float min_value, float max_value)
 {
     if (value < min_value)
@@ -58,11 +61,19 @@ float clampf(float value, float min_value, float max_value)
     return value;
 }
 
+/**
+ * @brief 将毫秒差值转换为秒，供搜索轨迹计算使用。
+ */
 float wrap_period_s(uint32_t elapsed_ms)
 {
     return (float)elapsed_ms * 0.001f;
 }
 
+/**
+ * @brief 计算局部搜索阶段的世界系目标角。
+ *
+ * 局部搜索以当前中心角为基准，在小范围内进行正弦摆动。
+ */
 void ctrl_get_local_search_target(float elapsed_s, float *yaw_target, float *pitch_target)
 {
     const float yaw = ctrl_ctx.search_local_center_yaw +
@@ -77,6 +88,11 @@ void ctrl_get_local_search_target(float elapsed_s, float *yaw_target, float *pit
     *pitch_target = pitch;
 }
 
+/**
+ * @brief 计算全局搜索阶段的世界系目标角。
+ *
+ * 全局搜索用于扩大搜索范围，优先覆盖更大角域。
+ */
 void ctrl_get_global_search_target(float elapsed_s, float *yaw_target, float *pitch_target)
 {
     const float yaw = k_search_global_yaw_amp_deg *
@@ -90,6 +106,11 @@ void ctrl_get_global_search_target(float elapsed_s, float *yaw_target, float *pi
     *pitch_target = pitch;
 }
 
+/**
+ * @brief 在全局搜索轨迹中寻找最接近参考姿态的回归相位。
+ *
+ * 该函数用于从全局搜索切回时，尽量减少轨迹相位跳变。
+ */
 uint32_t ctrl_find_global_reentry_elapsed_ms(float ref_yaw, float ref_pitch)
 {
     const float period_s = 1.0f / k_search_base_freq_hz;
@@ -120,6 +141,9 @@ uint32_t ctrl_find_global_reentry_elapsed_ms(float ref_yaw, float ref_pitch)
     return (uint32_t)((period_s * 1000.0f * (float)best_index) / (float)k_search_global_reentry_samples);
 }
 
+/**
+ * @brief 将角度按 100 倍缩放并压缩为 int16_t，供状态上报使用。
+ */
 int16_t encode_angle_x100(float angle_deg)
 {
     const float scaled = angle_deg * k_deg_per_count;
@@ -142,6 +166,9 @@ int16_t encode_angle_x100(float angle_deg)
     return (int16_t)(scaled - 0.5f);
 }
 
+/**
+ * @brief 根据当前业务模式和保护态生成 USB 状态字段。
+ */
 uint8_t ctrl_get_usb_mode(void)
 {
     if (ctrl_ctx.protect_state == PROTECT_LOCK)
@@ -168,6 +195,9 @@ uint8_t ctrl_get_usb_mode(void)
     }
 }
 
+/**
+ * @brief 将控制上下文恢复到上电后的默认状态。
+ */
 void ctrl_reset_context(void)
 {
     ctrl_ctx.yaw_world_target = 0.0f;
@@ -196,6 +226,9 @@ void ctrl_reset_context(void)
     ctrl_ctx.current_attitude.roll = 0.0f;
 }
 
+/**
+ * @brief 将世界系目标同步到当前 IMU 姿态，避免启动瞬间跳变。
+ */
 void ctrl_sync_world_target_to_attitude(uint32_t now_tick)
 {
     ctrl_ctx.yaw_world_target = clampf(ctrl_ctx.current_attitude.yaw,
@@ -216,12 +249,20 @@ void ctrl_sync_world_target_to_attitude(uint32_t now_tick)
     }
 }
 
+/**
+ * @brief 缓存云台关节角调试值，便于后续上报和观测。
+ */
 void ctrl_update_joint_debug_targets(const MotorManage &motor_manage)
 {
     ctrl_ctx.yaw_joint_target = motor_manage.get_yaw_joint_deg();
     ctrl_ctx.pitch_joint_target = motor_manage.get_pitch_joint_deg();
 }
 
+/**
+ * @brief 进入局部搜索模式。
+ *
+ * 局部搜索以当前世界系目标为中心，先做小范围摆动。
+ */
 void ctrl_enter_search_local(uint32_t now_tick)
 {
     ctrl_ctx.work_mode = WORK_MODE_SEARCH;
@@ -238,6 +279,11 @@ void ctrl_enter_search_local(uint32_t now_tick)
                                                 k_pitch_limit_max_deg);
 }
 
+/**
+ * @brief 进入全局搜索模式。
+ *
+ * 全局搜索会复用目标回归相位，减少模式切换时的轨迹突变。
+ */
 void ctrl_enter_search_global(uint32_t now_tick, float ref_yaw, float ref_pitch)
 {
     const uint32_t reentry_elapsed_ms = ctrl_find_global_reentry_elapsed_ms(ref_yaw, ref_pitch);
@@ -250,6 +296,9 @@ void ctrl_enter_search_global(uint32_t now_tick, float ref_yaw, float ref_pitch)
     ctrl_ctx.auto_aim_delta_pitch = 0.0f;
 }
 
+/**
+ * @brief 进入稳定模式并清空自瞄增量。
+ */
 void ctrl_enter_stable(void)
 {
     ctrl_ctx.work_mode = WORK_MODE_STABLE;
@@ -257,6 +306,9 @@ void ctrl_enter_stable(void)
     ctrl_ctx.auto_aim_delta_pitch = 0.0f;
 }
 
+/**
+ * @brief 刷新硬件在线状态与最近一次检测时刻。
+ */
 void ctrl_update_health(uint32_t now_tick)
 {
     ctrl_ctx.imu_online = imu_attitude_ready();
@@ -265,6 +317,9 @@ void ctrl_update_health(uint32_t now_tick)
     ctrl_ctx.last_health_check_tick = now_tick;
 }
 
+/**
+ * @brief 将自瞄增量叠加到当前世界系目标，并清空待处理增量。
+ */
 void ctrl_apply_auto_aim_delta(void)
 {
     if ((ctrl_ctx.auto_aim_delta_yaw == 0.0f) && (ctrl_ctx.auto_aim_delta_pitch == 0.0f))
@@ -282,6 +337,9 @@ void ctrl_apply_auto_aim_delta(void)
     ctrl_ctx.auto_aim_delta_pitch = 0.0f;
 }
 
+/**
+ * @brief 处理一条控制消息并更新任务状态。
+ */
 void ctrl_handle_msg(const CtrlMsg_t *msg, uint32_t now_tick, bool *send_lock_feedback)
 {
     if (msg == nullptr)
@@ -327,6 +385,9 @@ void ctrl_handle_msg(const CtrlMsg_t *msg, uint32_t now_tick, bool *send_lock_fe
     }
 }
 
+/**
+ * @brief 从消息队列中尽可能消费控制消息。
+ */
 void ctrl_consume_msgs(uint32_t now_tick, bool *send_lock_feedback)
 {
     CtrlMsg_t msg;
@@ -337,6 +398,9 @@ void ctrl_consume_msgs(uint32_t now_tick, bool *send_lock_feedback)
     }
 }
 
+/**
+ * @brief 按当前搜索阶段更新世界系目标角。
+ */
 void ctrl_update_search_target(uint32_t now_tick)
 {
     const float elapsed_s = wrap_period_s(now_tick - ctrl_ctx.search_phase_start_tick);
@@ -356,6 +420,9 @@ void ctrl_update_search_target(uint32_t now_tick)
     ctrl_ctx.pitch_world_target = clampf(pitch_target, k_pitch_limit_min_deg, k_pitch_limit_max_deg);
 }
 
+/**
+ * @brief 根据消息与超时条件切换业务模式。
+ */
 void ctrl_update_mode_timeout(uint32_t now_tick)
 {
     if (ctrl_ctx.protect_state != PROTECT_NONE)
@@ -387,6 +454,9 @@ void ctrl_update_mode_timeout(uint32_t now_tick)
     }
 }
 
+/**
+ * @brief 按周期向上位机发送状态反馈。
+ */
 void ctrl_send_status_if_due(uint32_t now_tick, const imu_data_t &imu_data)
 {
     usb_status_feedback_t status = {0};
@@ -418,6 +488,7 @@ extern "C" void StartCtrlTask(void *argument)
     //osDelay(osWaitForever);
     (void)argument;
 
+    // 任务启动后先完成外设初始化和上下文复位，再进入 1ms 固定周期控制循环。
     MotorManage motor_manage;
     TickType_t last_wake_time = xTaskGetTickCount();
     imu_data_t imu_data = {0.0f, 0.0f, 0.0f};
@@ -438,7 +509,8 @@ extern "C" void StartCtrlTask(void *argument)
 
     for (;;)
     {
-        //osDelay(osWaitForever);
+        // 先采样 IMU 和电机反馈，再根据消息、保护态和模式决定目标输出。
+        osDelay(osWaitForever);
         const uint32_t now_tick = osKernelGetTickCount();
         bool send_lock_feedback = false;
 
@@ -507,6 +579,7 @@ extern "C" void StartCtrlTask(void *argument)
         ctrl_send_status_if_due(now_tick, imu_data);
 
         auto a = uxTaskGetStackHighWaterMark(NULL);
+        (void)a;
         vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(k_ctrl_period_ms));
     }
     /* USER CODE END StartCtrlTask */

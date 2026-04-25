@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+#
+# DAPLink / CMSIS-DAP interface for STM32F405-class targets
+#
+
+source [find interface/cmsis-dap.cfg]
+
+# DAPLink normally uses SWD for Cortex-M targets.
+transport select swd
