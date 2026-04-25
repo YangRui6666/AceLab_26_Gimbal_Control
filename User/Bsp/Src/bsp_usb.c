@@ -16,8 +16,10 @@
 #define USB_EOF_BYTE_1 0xA5U
 #define USB_FRAME_OVERHEAD 8U
 #define USB_FRAME_MAX_SIZE (255U + USB_FRAME_OVERHEAD)
-#define USB_MAX_DELTA_YAW_DEG 60.0f
-#define USB_MAX_DELTA_PITCH_DEG 40.0f
+#define USB_ABS_YAW_MIN_DEG (-60.0f)
+#define USB_ABS_YAW_MAX_DEG 60.0f
+#define USB_ABS_PITCH_MIN_DEG (-10.0f)
+#define USB_ABS_PITCH_MAX_DEG 40.0f
 
 typedef struct
 {
@@ -252,8 +254,8 @@ static bool usb_decode_ctrl_msg(uint8_t cmd, const uint8_t *payload, uint8_t pay
 
     msg->type = CTRL_MSG_NONE;
     msg->time_stamp = 0U;
-    msg->delta_yaw = 0.0f;
-    msg->delta_pitch = 0.0f;
+    msg->yaw_target = 0.0f;
+    msg->pitch_target = 0.0f;
 
     switch (cmd)
     {
@@ -282,13 +284,15 @@ static bool usb_decode_ctrl_msg(uint8_t cmd, const uint8_t *payload, uint8_t pay
                 return false;
             }
 
-            msg->type = CTRL_MSG_AUTO_AIM_DELTA;
-            msg->delta_yaw = (float)(int16_t)usb_read_u16_le(&payload[0]) / 100.0f;
-            msg->delta_pitch = (float)(int16_t)usb_read_u16_le(&payload[2]) / 100.0f;
+            msg->type = CTRL_MSG_AUTO_AIM_ABS;
+            msg->yaw_target = (float)(int16_t)usb_read_u16_le(&payload[0]) / 100.0f;
+            msg->pitch_target = (float)(int16_t)usb_read_u16_le(&payload[2]) / 100.0f;
             msg->time_stamp = usb_read_u32_le(&payload[4]);
 
-            if ((fabsf(msg->delta_yaw) > USB_MAX_DELTA_YAW_DEG) ||
-                (fabsf(msg->delta_pitch) > USB_MAX_DELTA_PITCH_DEG))
+            if ((msg->yaw_target < USB_ABS_YAW_MIN_DEG) ||
+                (msg->yaw_target > USB_ABS_YAW_MAX_DEG) ||
+                (msg->pitch_target < USB_ABS_PITCH_MIN_DEG) ||
+                (msg->pitch_target > USB_ABS_PITCH_MAX_DEG))
             {
                 return false;
             }

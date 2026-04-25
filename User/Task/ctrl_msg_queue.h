@@ -12,7 +12,7 @@ typedef enum
 {
     CTRL_MSG_NONE = 0,
     CTRL_MSG_ENTER_SEARCH,
-    CTRL_MSG_AUTO_AIM_DELTA,
+    CTRL_MSG_AUTO_AIM_ABS,
     CTRL_MSG_ENTER_LOCK,
     CTRL_MSG_EXIT_LOCK
 } CtrlMsgType_e;
@@ -21,8 +21,8 @@ typedef struct
 {
     CtrlMsgType_e type;
     uint32_t time_stamp;
-    float delta_yaw;
-    float delta_pitch;
+    float yaw_target;
+    float pitch_target;
 } CtrlMsg_t;
 
 bool ctrl_msg_queue_init(void);

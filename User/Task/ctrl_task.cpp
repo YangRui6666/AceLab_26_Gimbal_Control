@@ -212,8 +212,8 @@ void ctrl_reset_context(void)
     ctrl_ctx.search_phase_start_tick = 0U;
     ctrl_ctx.search_local_center_yaw = 0.0f;
     ctrl_ctx.search_local_center_pitch = 0.0f;
-    ctrl_ctx.auto_aim_delta_yaw = 0.0f;
-    ctrl_ctx.auto_aim_delta_pitch = 0.0f;
+    ctrl_ctx.auto_aim_target_yaw = 0.0f;
+    ctrl_ctx.auto_aim_target_pitch = 0.0f;
     ctrl_ctx.last_ctrl_msg_tick = 0U;
     ctrl_ctx.last_auto_aim_tick = 0U;
     ctrl_ctx.last_status_tx_tick = 0U;
@@ -269,8 +269,8 @@ void ctrl_enter_search_local(uint32_t now_tick)
     ctrl_ctx.search_stage = SEARCH_STAGE_LOCAL;
     ctrl_ctx.search_stage_start_tick = now_tick;
     ctrl_ctx.search_phase_start_tick = now_tick;
-    ctrl_ctx.auto_aim_delta_yaw = 0.0f;
-    ctrl_ctx.auto_aim_delta_pitch = 0.0f;
+    ctrl_ctx.auto_aim_target_yaw = 0.0f;
+    ctrl_ctx.auto_aim_target_pitch = 0.0f;
     ctrl_ctx.search_local_center_yaw = clampf(ctrl_ctx.yaw_world_target,
                                               k_yaw_limit_min_deg,
                                               k_yaw_limit_max_deg);
@@ -292,18 +292,18 @@ void ctrl_enter_search_global(uint32_t now_tick, float ref_yaw, float ref_pitch)
     ctrl_ctx.search_stage = SEARCH_STAGE_GLOBAL;
     ctrl_ctx.search_stage_start_tick = now_tick;
     ctrl_ctx.search_phase_start_tick = now_tick - reentry_elapsed_ms;
-    ctrl_ctx.auto_aim_delta_yaw = 0.0f;
-    ctrl_ctx.auto_aim_delta_pitch = 0.0f;
+    ctrl_ctx.auto_aim_target_yaw = 0.0f;
+    ctrl_ctx.auto_aim_target_pitch = 0.0f;
 }
 
 /**
- * @brief 进入稳定模式并清空自瞄增量。
+ * @brief 进入稳定模式并清空自瞄目标。
  */
 void ctrl_enter_stable(void)
 {
     ctrl_ctx.work_mode = WORK_MODE_STABLE;
-    ctrl_ctx.auto_aim_delta_yaw = 0.0f;
-    ctrl_ctx.auto_aim_delta_pitch = 0.0f;
+    ctrl_ctx.auto_aim_target_yaw = 0.0f;
+    ctrl_ctx.auto_aim_target_pitch = 0.0f;
 }
 
 /**
@@ -318,23 +318,23 @@ void ctrl_update_health(uint32_t now_tick)
 }
 
 /**
- * @brief 将自瞄增量叠加到当前世界系目标，并清空待处理增量。
+ * @brief 将自瞄绝对角目标写入世界系目标，并清空待处理目标。
  */
-void ctrl_apply_auto_aim_delta(void)
+void ctrl_apply_auto_aim_target(void)
 {
-    if ((ctrl_ctx.auto_aim_delta_yaw == 0.0f) && (ctrl_ctx.auto_aim_delta_pitch == 0.0f))
+    if ((ctrl_ctx.auto_aim_target_yaw == 0.0f) && (ctrl_ctx.auto_aim_target_pitch == 0.0f))
     {
         return;
     }
 
-    ctrl_ctx.yaw_world_target = clampf(ctrl_ctx.current_attitude.yaw + ctrl_ctx.auto_aim_delta_yaw,
+    ctrl_ctx.yaw_world_target = clampf(ctrl_ctx.auto_aim_target_yaw,
                                        k_yaw_limit_min_deg,
                                        k_yaw_limit_max_deg);
-    ctrl_ctx.pitch_world_target = clampf(ctrl_ctx.current_attitude.pitch + ctrl_ctx.auto_aim_delta_pitch,
+    ctrl_ctx.pitch_world_target = clampf(ctrl_ctx.auto_aim_target_pitch,
                                          k_pitch_limit_min_deg,
                                          k_pitch_limit_max_deg);
-    ctrl_ctx.auto_aim_delta_yaw = 0.0f;
-    ctrl_ctx.auto_aim_delta_pitch = 0.0f;
+    ctrl_ctx.auto_aim_target_yaw = 0.0f;
+    ctrl_ctx.auto_aim_target_pitch = 0.0f;
 }
 
 /**
@@ -355,13 +355,19 @@ void ctrl_handle_msg(const CtrlMsg_t *msg, uint32_t now_tick, bool *send_lock_fe
             ctrl_enter_search_local(now_tick);
             break;
 
-        case CTRL_MSG_AUTO_AIM_DELTA:
+        case CTRL_MSG_AUTO_AIM_ABS:
             ctrl_ctx.last_ctrl_msg_tick = now_tick;
             ctrl_ctx.last_auto_aim_tick = now_tick;
             ctrl_ctx.work_mode = WORK_MODE_AUTO_AIM;
             ctrl_ctx.protect_state = PROTECT_NONE;
-            ctrl_ctx.auto_aim_delta_yaw = -msg->delta_yaw;
-            ctrl_ctx.auto_aim_delta_pitch = msg->delta_pitch;
+            ctrl_ctx.auto_aim_target_yaw = msg->yaw_target;
+            ctrl_ctx.auto_aim_target_pitch = msg->pitch_target;
+            ctrl_ctx.yaw_world_target = clampf(msg->yaw_target,
+                                               k_yaw_limit_min_deg,
+                                               k_yaw_limit_max_deg);
+            ctrl_ctx.pitch_world_target = clampf(msg->pitch_target,
+                                                 k_pitch_limit_min_deg,
+                                                 k_pitch_limit_max_deg);
             break;
 
         case CTRL_MSG_ENTER_LOCK:
@@ -534,8 +540,8 @@ extern "C" void StartCtrlTask(void *argument)
         if (!ctrl_ctx.imu_online)
         {
             ctrl_ctx.world_target_synced = false;
-            ctrl_ctx.auto_aim_delta_yaw = 0.0f;
-            ctrl_ctx.auto_aim_delta_pitch = 0.0f;
+            ctrl_ctx.auto_aim_target_yaw = 0.0f;
+            ctrl_ctx.auto_aim_target_pitch = 0.0f;
             motor_manage.lock();
             ctrl_send_status_if_due(now_tick, imu_data);
             vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(k_ctrl_period_ms));
@@ -561,7 +567,7 @@ extern "C" void StartCtrlTask(void *argument)
         }
         else if (ctrl_ctx.work_mode == WORK_MODE_AUTO_AIM)
         {
-            ctrl_apply_auto_aim_delta();
+            ctrl_apply_auto_aim_target();
         }
 
         ctrl_ctx.yaw_world_target = clampf(ctrl_ctx.yaw_world_target,

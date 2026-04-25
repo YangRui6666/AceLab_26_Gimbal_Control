@@ -112,7 +112,7 @@ extern "C" void StartdddebugTask(void *argument)
 {
     /* USER CODE BEGIN StartCtrlTask */
     /* Infinite loop */
-    osDelay(osWaitForever);
+    //osDelay(osWaitForever);
     
     (void)argument;
 
@@ -155,15 +155,16 @@ extern "C" void StartdddebugTask(void *argument)
         (void)imu_attitude_ready();
         motor_manage.update_feedback();
         (void)can_check(0x206);
-        float yaw_test = gen_sin_target(40.0f,1.0f);
+        float yaw_test = gen_step_target(10);
         // motor_manage.set_world_target(0, gen_sin_target(10.0f, 0.5f), imu_data_fusion.yaw, imu_data_fusion.pitch);
         // motor_manage.set_world_target(0, gen_step_target(20.0f), imu_data_fusion.yaw, imu_data_fusion.pitch);
         // motor_manage.set_world_target(30.f, 0.0f, imu_data_fusion.yaw, imu_data_fusion.pitch);
+        volatile static bool acbd = true;
         motor_manage.set_world_target(yaw_test,
                                       0.0f,
                                       imu_data_fusion.yaw,
                                       imu_data_fusion.pitch,
-                                      true);
+                                      acbd);
         // motor_manage.set_world_target(gen_sin_target(20.0f,0.5f),
         //                               0.0f,
         //                               imu_data_fusion.yaw,
