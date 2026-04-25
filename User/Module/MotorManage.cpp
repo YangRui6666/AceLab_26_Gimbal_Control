@@ -113,6 +113,15 @@ float compute_measured_dt_s(uint32_t now_tick_ms, uint32_t &last_tick_ms, float 
 volatile MotorManageDebugData g_motor_manage_debug = {0};
 #endif
 
+volatile MotorManageRuntimeParams g_motor_manage_runtime_params = {
+    18.0f, 0.0f, 0.0f,
+    30.0f, 5.0f, 0.0f,
+    18.0f, 4.0f, 0.0f,
+    15.0f, 3.0f, 0.0f,
+    180.0f, 720.0f, 50.0f,
+    120.0f, 480.0f, 0.08f
+};
+
 MotorManage::MotorManage()
     : yaw_(0x206, k_current_cmd_limit, k_yaw_limit_max_deg, k_yaw_limit_min_deg),
       pitch_(0x208, k_current_cmd_limit, k_pitch_limit_max_deg, k_pitch_limit_min_deg),
@@ -128,7 +137,13 @@ MotorManage::MotorManage()
       yaw_ff_state_{0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
       pitch_ff_state_{0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
       yaw_planner_config_{180.0f, 720.0f, 20.0f},
-      pitch_planner_config_{120.0f, 480.0f, 0.08f}
+      pitch_planner_config_{120.0f, 480.0f, 0.08f},
+      runtime_params_{18.0f, 0.0f, 0.0f,
+                      25.0f, 5.0f, 0.0f,
+                      18.0f, 4.0f, 0.0f,
+                      15.0f, 3.0f, 0.0f,
+                      180.0f, 720.0f, 20.0f,
+                      120.0f, 480.0f, 0.08f}
 {
     yaw_.init();
     pitch_.init();
@@ -136,6 +151,7 @@ MotorManage::MotorManage()
     yaw_pid_speed_.init(4.0f, 1.0f, 0.0f, 10000.0f, 10000.0f, 0.1f);
     pitch_pid_location_.init(15.0f, 0.0f, 0.0f, 100.0f, 10000.0f, 0.1f);
     pitch_pid_speed_.init(4.0f, 1.0f, 0.0f, 100.0f, 10000.0f, 0.1f);
+    sync_runtime_params_from_global();
 }
 
 void MotorManage::update_feedback()
@@ -156,6 +172,134 @@ void MotorManage::send_can_cmd()
     tx_data[7] = (uint8_t)(pitch_current & 0xFF);
 
     bsp_tx(0x1FF, tx_data, sizeof(tx_data));
+}
+
+void MotorManage::copy_runtime_params(MotorManageRuntimeParams *dst, const MotorManageRuntimeParams &src)
+{
+    if (dst == nullptr)
+    {
+        return;
+    }
+
+    dst->yaw_location_kp = src.yaw_location_kp;
+    dst->yaw_location_ki = src.yaw_location_ki;
+    dst->yaw_location_kd = src.yaw_location_kd;
+    dst->yaw_speed_kp = src.yaw_speed_kp;
+    dst->yaw_speed_ki = src.yaw_speed_ki;
+    dst->yaw_speed_kd = src.yaw_speed_kd;
+    dst->pitch_location_kp = src.pitch_location_kp;
+    dst->pitch_location_ki = src.pitch_location_ki;
+    dst->pitch_location_kd = src.pitch_location_kd;
+    dst->pitch_speed_kp = src.pitch_speed_kp;
+    dst->pitch_speed_ki = src.pitch_speed_ki;
+    dst->pitch_speed_kd = src.pitch_speed_kd;
+    dst->yaw_max_vel_dps = src.yaw_max_vel_dps;
+    dst->yaw_max_acc_dps2 = src.yaw_max_acc_dps2;
+    dst->yaw_k_vel_ff = src.yaw_k_vel_ff;
+    dst->pitch_max_vel_dps = src.pitch_max_vel_dps;
+    dst->pitch_max_acc_dps2 = src.pitch_max_acc_dps2;
+    dst->pitch_k_vel_ff = src.pitch_k_vel_ff;
+}
+
+void MotorManage::copy_runtime_params(MotorManageRuntimeParams *dst, const volatile MotorManageRuntimeParams &src)
+{
+    if (dst == nullptr)
+    {
+        return;
+    }
+
+    dst->yaw_location_kp = src.yaw_location_kp;
+    dst->yaw_location_ki = src.yaw_location_ki;
+    dst->yaw_location_kd = src.yaw_location_kd;
+    dst->yaw_speed_kp = src.yaw_speed_kp;
+    dst->yaw_speed_ki = src.yaw_speed_ki;
+    dst->yaw_speed_kd = src.yaw_speed_kd;
+    dst->pitch_location_kp = src.pitch_location_kp;
+    dst->pitch_location_ki = src.pitch_location_ki;
+    dst->pitch_location_kd = src.pitch_location_kd;
+    dst->pitch_speed_kp = src.pitch_speed_kp;
+    dst->pitch_speed_ki = src.pitch_speed_ki;
+    dst->pitch_speed_kd = src.pitch_speed_kd;
+    dst->yaw_max_vel_dps = src.yaw_max_vel_dps;
+    dst->yaw_max_acc_dps2 = src.yaw_max_acc_dps2;
+    dst->yaw_k_vel_ff = src.yaw_k_vel_ff;
+    dst->pitch_max_vel_dps = src.pitch_max_vel_dps;
+    dst->pitch_max_acc_dps2 = src.pitch_max_acc_dps2;
+    dst->pitch_k_vel_ff = src.pitch_k_vel_ff;
+}
+
+void MotorManage::copy_runtime_params(volatile MotorManageRuntimeParams *dst, const MotorManageRuntimeParams &src)
+{
+    if (dst == nullptr)
+    {
+        return;
+    }
+
+    dst->yaw_location_kp = src.yaw_location_kp;
+    dst->yaw_location_ki = src.yaw_location_ki;
+    dst->yaw_location_kd = src.yaw_location_kd;
+    dst->yaw_speed_kp = src.yaw_speed_kp;
+    dst->yaw_speed_ki = src.yaw_speed_ki;
+    dst->yaw_speed_kd = src.yaw_speed_kd;
+    dst->pitch_location_kp = src.pitch_location_kp;
+    dst->pitch_location_ki = src.pitch_location_ki;
+    dst->pitch_location_kd = src.pitch_location_kd;
+    dst->pitch_speed_kp = src.pitch_speed_kp;
+    dst->pitch_speed_ki = src.pitch_speed_ki;
+    dst->pitch_speed_kd = src.pitch_speed_kd;
+    dst->yaw_max_vel_dps = src.yaw_max_vel_dps;
+    dst->yaw_max_acc_dps2 = src.yaw_max_acc_dps2;
+    dst->yaw_k_vel_ff = src.yaw_k_vel_ff;
+    dst->pitch_max_vel_dps = src.pitch_max_vel_dps;
+    dst->pitch_max_acc_dps2 = src.pitch_max_acc_dps2;
+    dst->pitch_k_vel_ff = src.pitch_k_vel_ff;
+}
+
+void MotorManage::apply_runtime_params(const MotorManageRuntimeParams &params)
+{
+    runtime_params_ = params;
+
+    yaw_pid_location_.set_kp(runtime_params_.yaw_location_kp);
+    yaw_pid_location_.set_ki(runtime_params_.yaw_location_ki);
+    yaw_pid_location_.set_kd(runtime_params_.yaw_location_kd);
+    yaw_pid_speed_.set_kp(runtime_params_.yaw_speed_kp);
+    yaw_pid_speed_.set_ki(runtime_params_.yaw_speed_ki);
+    yaw_pid_speed_.set_kd(runtime_params_.yaw_speed_kd);
+
+    pitch_pid_location_.set_kp(runtime_params_.pitch_location_kp);
+    pitch_pid_location_.set_ki(runtime_params_.pitch_location_ki);
+    pitch_pid_location_.set_kd(runtime_params_.pitch_location_kd);
+    pitch_pid_speed_.set_kp(runtime_params_.pitch_speed_kp);
+    pitch_pid_speed_.set_ki(runtime_params_.pitch_speed_ki);
+    pitch_pid_speed_.set_kd(runtime_params_.pitch_speed_kd);
+
+    yaw_planner_config_.max_vel_dps = (runtime_params_.yaw_max_vel_dps > 0.0f) ? runtime_params_.yaw_max_vel_dps : 1.0f;
+    yaw_planner_config_.max_acc_dps2 = (runtime_params_.yaw_max_acc_dps2 > 0.0f) ? runtime_params_.yaw_max_acc_dps2 : 1.0f;
+    yaw_planner_config_.k_vel_ff = runtime_params_.yaw_k_vel_ff;
+
+    pitch_planner_config_.max_vel_dps = (runtime_params_.pitch_max_vel_dps > 0.0f) ? runtime_params_.pitch_max_vel_dps : 1.0f;
+    pitch_planner_config_.max_acc_dps2 = (runtime_params_.pitch_max_acc_dps2 > 0.0f) ? runtime_params_.pitch_max_acc_dps2 : 1.0f;
+    pitch_planner_config_.k_vel_ff = runtime_params_.pitch_k_vel_ff;
+}
+
+void MotorManage::sync_runtime_params_from_global()
+{
+    MotorManageRuntimeParams params = {0};
+    copy_runtime_params(&params, g_motor_manage_runtime_params);
+    apply_runtime_params(params);
+}
+
+void MotorManage::set_runtime_params(const MotorManageRuntimeParams &params)
+{
+    MotorManageRuntimeParams global_params = {0};
+    copy_runtime_params(&global_params, params);
+    copy_runtime_params(&g_motor_manage_runtime_params, global_params);
+    apply_runtime_params(global_params);
+}
+
+MotorManageRuntimeParams MotorManage::get_runtime_params() const
+{
+    return runtime_params_;
 }
 
 void MotorManage::clear_feedforward_state(FeedforwardAxisState *ff_state)
@@ -294,36 +438,7 @@ void MotorManage::set_world_target(float yaw_target_deg,
 #define DDEBUG_PITCH_ON
 #endif
 
-#ifdef DDEBUG_YAW_ON
-    volatile static int kp_debug_yaw = 18;
-    volatile static int ki_debug_yaw = 0;
-    volatile static int kd_debug_yaw = 0;
-    yaw_pid_location_.set_kp(kp_debug_yaw);
-    yaw_pid_location_.set_ki(ki_debug_yaw);
-    yaw_pid_location_.set_kd(kd_debug_yaw);
-    volatile static int kp_debug_yaw_speed = 25;
-    volatile static int ki_debug_yaw_speed = 5;
-    volatile static int kd_debug_yaw_speed = 0;
-    yaw_pid_speed_.set_kp(kp_debug_yaw_speed);
-    yaw_pid_speed_.set_ki(ki_debug_yaw_speed);
-    yaw_pid_speed_.set_kd(kd_debug_yaw_speed);
-
-#endif
-
-#ifdef DDEBUG_PITCH_ON
-    volatile static int kp_debug_pitch = 18;
-    volatile static int ki_debug_pitch = 4;
-    volatile static int kd_debug_pitch = 0;
-    pitch_pid_location_.set_kp(kp_debug_pitch);
-    pitch_pid_location_.set_ki(ki_debug_pitch);
-    pitch_pid_location_.set_kd(kd_debug_pitch);
-    volatile static int kp_debug_pitch_speed = 15;
-    volatile static int ki_debug_pitch_speed = 3;
-    volatile static int kd_debug_pitch_speed = 0;
-    pitch_pid_speed_.set_kp(kp_debug_pitch_speed);
-    pitch_pid_speed_.set_ki(ki_debug_pitch_speed);
-    pitch_pid_speed_.set_kd(kd_debug_pitch_speed);
-#endif
+    sync_runtime_params_from_global();
 
     const auto yaw_state = yaw_.get_state();
     const auto pitch_state = pitch_.get_state();

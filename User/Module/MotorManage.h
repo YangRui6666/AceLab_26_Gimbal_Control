@@ -12,6 +12,33 @@
 
 #define  DDBUG_DATA_ON
 
+typedef struct
+{
+    float yaw_location_kp;
+    float yaw_location_ki;
+    float yaw_location_kd;
+    float yaw_speed_kp;
+    float yaw_speed_ki;
+    float yaw_speed_kd;
+
+    float pitch_location_kp;
+    float pitch_location_ki;
+    float pitch_location_kd;
+    float pitch_speed_kp;
+    float pitch_speed_ki;
+    float pitch_speed_kd;
+
+    float yaw_max_vel_dps;
+    float yaw_max_acc_dps2;
+    float yaw_k_vel_ff;
+
+    float pitch_max_vel_dps;
+    float pitch_max_acc_dps2;
+    float pitch_k_vel_ff;
+} MotorManageRuntimeParams;
+
+extern volatile MotorManageRuntimeParams g_motor_manage_runtime_params;
+
 #ifdef DDBUG_DATA_ON
 typedef struct
 {
@@ -65,6 +92,9 @@ public:
 
     void update_feedback();
     void send_can_cmd();
+    void sync_runtime_params_from_global();
+    void set_runtime_params(const MotorManageRuntimeParams &params);
+    MotorManageRuntimeParams get_runtime_params() const;
     void set_world_target(float yaw_target_deg,
                           float pitch_target_deg,
                           float yaw_meas_deg,
@@ -110,6 +140,10 @@ private:
         float k_vel_ff;
     };
 
+    static void copy_runtime_params(MotorManageRuntimeParams *dst, const MotorManageRuntimeParams &src);
+    static void copy_runtime_params(MotorManageRuntimeParams *dst, const volatile MotorManageRuntimeParams &src);
+    static void copy_runtime_params(volatile MotorManageRuntimeParams *dst, const MotorManageRuntimeParams &src);
+    void apply_runtime_params(const MotorManageRuntimeParams &params);
     static float clamp_target_deg(float value, float min_value, float max_value);
     float yaw_motor_to_joint_deg(float motor_angle_deg) const;
     static float pitch_motor_to_joint_deg(float motor_angle_deg);
@@ -136,6 +170,7 @@ private:
     FeedforwardAxisState pitch_ff_state_;
     PlannerAxisConfig yaw_planner_config_;
     PlannerAxisConfig pitch_planner_config_;
+    MotorManageRuntimeParams runtime_params_;
 };
 
 #endif // GIMBAL_UM_MOTORMANAGE_H

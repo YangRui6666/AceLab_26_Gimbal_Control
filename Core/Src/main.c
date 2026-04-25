@@ -76,6 +76,13 @@ const osThreadAttr_t dddebugTask_attributes = {
   .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityRealtime,
 };
+/* Definitions for RTTTask */
+osThreadId_t RTTTaskHandle;
+const osThreadAttr_t RTTTask_attributes = {
+  .name = "RTTTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityHigh1,
+};
 /* Definitions for comm_sem */
 osSemaphoreId_t comm_semHandle;
 const osSemaphoreAttr_t comm_sem_attributes = {
@@ -95,6 +102,7 @@ void StartDefaultTask(void *argument);
 void StartCtrlTask(void *argument);
 void StartCommunicateTask(void *argument);
 void StartdddebugTask(void *argument);
+void StartRTTTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -178,6 +186,9 @@ int main(void)
 
   /* creation of dddebugTask */
   dddebugTaskHandle = osThreadNew(StartdddebugTask, NULL, &dddebugTask_attributes);
+
+  /* creation of RTTTask */
+  RTTTaskHandle = osThreadNew(StartRTTTask, NULL, &RTTTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -464,6 +475,24 @@ __weak void StartdddebugTask(void *argument)
     osDelay(1);
   }
   /* USER CODE END StartdddebugTask */
+}
+
+/* USER CODE BEGIN Header_StartRTTTask */
+/**
+* @brief Function implementing the RTTTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartRTTTask */
+__weak void StartRTTTask(void *argument)
+{
+  /* USER CODE BEGIN StartRTTTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartRTTTask */
 }
 
 /**

@@ -38,9 +38,10 @@
   <component name="ChangeListManager">
     <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="修改调试器为daplink，以及重新把视觉发送的数据调整为赋值运动">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Core/Src/main.c" beforeDir="false" afterPath="$PROJECT_DIR$/Core/Src/main.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Gimbal_um.ioc" beforeDir="false" afterPath="$PROJECT_DIR$/Gimbal_um.ioc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Task/debug_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/debug_task.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -210,7 +211,7 @@
       <workItem from="1776946916300" duration="2236000" />
       <workItem from="1776993735741" duration="3946000" />
       <workItem from="1777044673761" duration="755000" />
-      <workItem from="1777082014275" duration="11417000" />
+      <workItem from="1777082014275" duration="16166000" />
     </task>
     <task id="LOCAL-00001" summary="搭建起来一个自己的框架">
       <option name="closed" value="true" />
