@@ -80,7 +80,7 @@ const osThreadAttr_t dddebugTask_attributes = {
 osThreadId_t RTTTaskHandle;
 const osThreadAttr_t RTTTask_attributes = {
   .name = "RTTTask",
-  .stack_size = 128 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityHigh1,
 };
 /* Definitions for comm_sem */

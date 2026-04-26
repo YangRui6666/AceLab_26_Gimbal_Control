@@ -9,3 +9,5 @@ openocd-*.log
 *.tar.gz
 *.csv
 session.json
+*.log
+summary.md

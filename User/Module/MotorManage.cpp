@@ -636,7 +636,8 @@ void MotorManage::set_control_reference(const MotorControlReference &reference,
         {
             float yaw_speed_correction = yaw_pid_location_.calculate(yaw_exec_pos, yaw_meas_world_deg, outer_dt_s);
 
-            if ((reference.aim_mode == MOTOR_AIM_MODE_SMALL_TRACK) ||
+            if ((reference.yaw.reference_mode == MOTOR_REFERENCE_MODE_DIRECT) ||
+                (reference.aim_mode == MOTOR_AIM_MODE_SMALL_TRACK) ||
                 (reference.aim_mode == MOTOR_AIM_MODE_SPIN_TRACK) ||
                 (reference.aim_mode == MOTOR_AIM_MODE_TRACK_LOST))
             {
@@ -701,7 +702,8 @@ void MotorManage::set_control_reference(const MotorControlReference &reference,
             float pitch_speed_correction =
                 -pitch_pid_location_.calculate(pitch_exec_pos, pitch_meas_world_deg, outer_dt_s);
 
-            if ((reference.aim_mode == MOTOR_AIM_MODE_SMALL_TRACK) ||
+            if ((reference.pitch.reference_mode == MOTOR_REFERENCE_MODE_DIRECT) ||
+                (reference.aim_mode == MOTOR_AIM_MODE_SMALL_TRACK) ||
                 (reference.aim_mode == MOTOR_AIM_MODE_SPIN_TRACK) ||
                 (reference.aim_mode == MOTOR_AIM_MODE_TRACK_LOST))
             {

@@ -3,8 +3,8 @@
 //
 
 #include <cctype>
-#include <cstdio>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
@@ -12,259 +12,29 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+#include "debug_tune.h"
 #include "SEGGER_RTT.h"
-#include "MotorManage.h"
-#include "bsp_can.h"
-#include "imu_fusion.h"
-
-extern "C" {
-extern osThreadId_t dddebugTaskHandle;
-}
 
 namespace
 {
 
 constexpr unsigned k_rtt_buffer_index = 0U;
 constexpr uint32_t k_task_period_ms = 1U;
-constexpr uint32_t k_settle_ms = 500U;
-constexpr uint32_t k_sample_ms = 300U;
-constexpr float k_yaw_min_deg = -45.0f;
-constexpr float k_yaw_max_deg = 45.0f;
-constexpr float k_yaw_step_deg = 5.0f;
-constexpr size_t k_command_buffer_size = 96U;
-constexpr size_t k_points_per_pass =
-    (size_t)(((k_yaw_max_deg - k_yaw_min_deg) / k_yaw_step_deg) + 1.0f);
-constexpr size_t k_total_points = k_points_per_pass * 2U;
-
-enum rtt_test_state_t
-{
-    RTT_TEST_IDLE = 0,
-    RTT_TEST_HOLD_SWEEP_MOVING,
-    RTT_TEST_HOLD_SWEEP_SETTLING,
-    RTT_TEST_HOLD_SWEEP_SAMPLING,
-    RTT_TEST_ABORTING
-};
-
-typedef struct
-{
-    uint32_t run_id;
-    size_t point_index;
-    uint32_t phase_start_tick_ms;
-    float yaw_target_deg;
-    float pitch_target_deg;
-    const char *direction;
-    bool csv_header_sent;
-    bool dddebug_suspended;
-    bool wait_imu_logged;
-} hold_sweep_context_t;
+constexpr size_t k_command_buffer_size = 192U;
 
 static char s_command_buffer[k_command_buffer_size] = {0};
 static size_t s_command_length = 0U;
-static uint32_t s_next_run_id = 1U;
 static bool s_rtt_initialized = false;
-static bool s_runtime_initialized = false;
-static rtt_test_state_t s_test_state = RTT_TEST_IDLE;
-static hold_sweep_context_t s_hold_ctx = {0U, 0U, 0U, 0.0f, 0.0f, "pos", false, false, false};
-static imu_data_t s_imu_data = {0.0f, 0.0f, 0.0f};
 
-MotorManage &rtt_task_motor_manage()
+void rtt_write_comment(const char *message)
 {
-    static MotorManage motor_manage;
-    return motor_manage;
+    if (message != nullptr)
+    {
+        SEGGER_RTT_printf(k_rtt_buffer_index, "#%s\n", message);
+    }
 }
 
-bool rtt_task_try_parse_pitch_arg(const char *text, float *pitch_deg)
-{
-    char *parse_end = nullptr;
-    float parsed_pitch = 0.0f;
-
-    if ((text == nullptr) || (pitch_deg == nullptr))
-    {
-        return false;
-    }
-
-    while ((*text != '\0') && std::isspace((unsigned char)*text))
-    {
-        ++text;
-    }
-
-    if (std::strncmp(text, "pitch=", 6U) != 0)
-    {
-        return false;
-    }
-
-    text += 6U;
-    parsed_pitch = std::strtof(text, &parse_end);
-    if ((parse_end == text) || (parse_end == nullptr))
-    {
-        return false;
-    }
-
-    while ((*parse_end != '\0') && std::isspace((unsigned char)*parse_end))
-    {
-        ++parse_end;
-    }
-
-    if (*parse_end != '\0')
-    {
-        return false;
-    }
-
-    *pitch_deg = parsed_pitch;
-    return true;
-}
-
-bool rtt_task_try_parse_axis_value_arg(const char *text, char *axis_text, size_t axis_text_size, float *value)
-{
-    const char *value_text = nullptr;
-    char *parse_end = nullptr;
-
-    if ((text == nullptr) || (axis_text == nullptr) || (axis_text_size == 0U) || (value == nullptr))
-    {
-        return false;
-    }
-
-    while ((*text != '\0') && std::isspace((unsigned char)*text))
-    {
-        ++text;
-    }
-
-    if (*text == '\0')
-    {
-        return false;
-    }
-
-    const char *axis_begin = text;
-    const char *axis_end = axis_begin;
-
-    while ((*axis_end != '\0') &&
-           !std::isspace((unsigned char)*axis_end) &&
-           (*axis_end != '='))
-    {
-        ++axis_end;
-    }
-
-    if (axis_end == axis_begin)
-    {
-        return false;
-    }
-
-    const size_t axis_len = (size_t)(axis_end - axis_begin);
-    if (axis_len + 1U > axis_text_size)
-    {
-        return false;
-    }
-
-    std::memcpy(axis_text, axis_begin, axis_len);
-    axis_text[axis_len] = '\0';
-
-    value_text = axis_end;
-    if (*value_text == '=')
-    {
-        ++value_text;
-    }
-    else
-    {
-        while ((*value_text != '\0') && std::isspace((unsigned char)*value_text))
-        {
-            ++value_text;
-        }
-    }
-
-    if (*value_text == '\0')
-    {
-        return false;
-    }
-
-    *value = std::strtof(value_text, &parse_end);
-    if ((parse_end == value_text) || (parse_end == nullptr))
-    {
-        return false;
-    }
-
-    while ((*parse_end != '\0') && std::isspace((unsigned char)*parse_end))
-    {
-        ++parse_end;
-    }
-
-    if (*parse_end != '\0')
-    {
-        return false;
-    }
-
-    return true;
-}
-
-bool rtt_task_apply_ff_update(const char *args, bool set_bias)
-{
-    char axis_text[16] = {0};
-    char value_text[24] = {0};
-    float value = 0.0f;
-    MotorManageRuntimeParams params = rtt_task_motor_manage().get_runtime_params();
-
-    if (!rtt_task_try_parse_axis_value_arg(args, axis_text, sizeof(axis_text), &value))
-    {
-        return false;
-    }
-
-    if (std::strcmp(axis_text, "yaw") == 0)
-    {
-        if (set_bias)
-        {
-            params.yaw_hold_ff = value;
-        }
-        else
-        {
-            params.yaw_k_vel_ff = value;
-        }
-    }
-    else if (std::strcmp(axis_text, "pitch") == 0)
-    {
-        if (set_bias)
-        {
-            params.pitch_hold_ff = value;
-        }
-        else
-        {
-            params.pitch_k_vel_ff = value;
-        }
-    }
-    else
-    {
-        return false;
-    }
-
-    rtt_task_motor_manage().set_runtime_params(params);
-    (void)std::snprintf(value_text, sizeof(value_text), "%.6f", value);
-    SEGGER_RTT_printf(k_rtt_buffer_index,
-                      "#ACK ff %s axis=%s value=%s\n",
-                      set_bias ? "set_bias" : "set_kv",
-                      axis_text,
-                      value_text);
-    return true;
-}
-
-void rtt_task_write_string(const char *text)
-{
-    if (text == nullptr)
-    {
-        return;
-    }
-
-    SEGGER_RTT_WriteString(k_rtt_buffer_index, text);
-}
-
-void rtt_task_emit_comment(const char *message)
-{
-    if (message == nullptr)
-    {
-        return;
-    }
-
-    SEGGER_RTT_printf(k_rtt_buffer_index, "#%s\n", message);
-}
-
-void rtt_task_format_fixed(char *buffer, size_t buffer_size, float value, uint32_t decimals)
+void format_fixed(char *buffer, size_t buffer_size, float value, uint32_t decimals)
 {
     int32_t scale = 1;
     bool negative = false;
@@ -295,11 +65,7 @@ void rtt_task_format_fixed(char *buffer, size_t buffer_size, float value, uint32
 
     if (decimals == 0U)
     {
-        (void)std::snprintf(buffer,
-                            buffer_size,
-                            "%s%ld",
-                            negative ? "-" : "",
-                            (long)whole);
+        (void)std::snprintf(buffer, buffer_size, "%s%ld", negative ? "-" : "", (long)whole);
         return;
     }
 
@@ -312,323 +78,705 @@ void rtt_task_format_fixed(char *buffer, size_t buffer_size, float value, uint32
                         (long)frac);
 }
 
-bool rtt_task_is_active(void)
+char *trim(char *text)
 {
-    return (s_test_state == RTT_TEST_HOLD_SWEEP_MOVING) ||
-           (s_test_state == RTT_TEST_HOLD_SWEEP_SETTLING) ||
-           (s_test_state == RTT_TEST_HOLD_SWEEP_SAMPLING) ||
-           (s_test_state == RTT_TEST_ABORTING);
-}
-
-float rtt_task_get_target_deg(size_t point_index)
-{
-    if (point_index < k_points_per_pass)
-    {
-        return k_yaw_min_deg + (k_yaw_step_deg * (float)point_index);
-    }
-
-    return k_yaw_max_deg - (k_yaw_step_deg * (float)(point_index - k_points_per_pass));
-}
-
-const char *rtt_task_get_direction(size_t point_index)
-{
-    return (point_index < k_points_per_pass) ? "pos" : "neg";
-}
-
-void rtt_task_select_point(size_t point_index, uint32_t now_tick_ms)
-{
-    char target_deg_text[24] = {0};
-
-    s_hold_ctx.point_index = point_index;
-    s_hold_ctx.phase_start_tick_ms = now_tick_ms;
-    s_hold_ctx.yaw_target_deg = rtt_task_get_target_deg(point_index);
-    s_hold_ctx.direction = rtt_task_get_direction(point_index);
-    s_test_state = RTT_TEST_HOLD_SWEEP_MOVING;
-    rtt_task_format_fixed(target_deg_text, sizeof(target_deg_text), s_hold_ctx.yaw_target_deg, 3U);
-
-    SEGGER_RTT_printf(k_rtt_buffer_index,
-                      "#POINT run_id=%lu target_deg=%s direction=%s index=%u\n",
-                      (unsigned long)s_hold_ctx.run_id,
-                      target_deg_text,
-                      s_hold_ctx.direction,
-                      (unsigned)point_index);
-}
-
-bool rtt_task_suspend_dddebug()
-{
-    if (s_hold_ctx.dddebug_suspended)
-    {
-        return true;
-    }
-
-    if (dddebugTaskHandle == nullptr)
-    {
-        return true;
-    }
-
-    if (osThreadSuspend(dddebugTaskHandle) == osOK)
-    {
-        s_hold_ctx.dddebug_suspended = true;
-        rtt_task_emit_comment("INFO dddebug suspended");
-        return true;
-    }
-
-    rtt_task_emit_comment("ERR dddebug_suspend_failed");
-    return false;
-}
-
-void rtt_task_resume_dddebug()
-{
-    if (!s_hold_ctx.dddebug_suspended)
-    {
-        return;
-    }
-
-    if (dddebugTaskHandle != nullptr)
-    {
-        (void)osThreadResume(dddebugTaskHandle);
-    }
-
-    s_hold_ctx.dddebug_suspended = false;
-    rtt_task_emit_comment("INFO dddebug resumed");
-}
-
-void rtt_task_init_runtime()
-{
-    if (s_runtime_initialized)
-    {
-        return;
-    }
-
-    (void)bsp_can_init();
-    imu_init();
-    (void)rtt_task_motor_manage();
-    s_runtime_initialized = true;
-    rtt_task_emit_comment("INFO runtime initialized");
-}
-
-void rtt_task_emit_csv_header_once()
-{
-    if (s_hold_ctx.csv_header_sent)
-    {
-        return;
-    }
-
-    rtt_task_write_string(
-        "kind,run_id,test,axis,pitch_deg,target_deg,direction,tick_ms,meas_deg,meas_speed_dps,current_meas,current_cmd,current_pid,ff_total\n");
-    s_hold_ctx.csv_header_sent = true;
-}
-
-void rtt_task_emit_sample()
-{
-    const volatile MotorManageDebugData *debug = &g_motor_manage_debug;
-    char pitch_deg_text[24] = {0};
-    char target_deg_text[24] = {0};
-    char meas_deg_text[24] = {0};
-    char meas_speed_text[24] = {0};
-    char current_pid_text[24] = {0};
-    char ff_total_text[24] = {0};
-
-    rtt_task_format_fixed(pitch_deg_text, sizeof(pitch_deg_text), s_hold_ctx.pitch_target_deg, 3U);
-    rtt_task_format_fixed(target_deg_text, sizeof(target_deg_text), s_hold_ctx.yaw_target_deg, 3U);
-    rtt_task_format_fixed(meas_deg_text, sizeof(meas_deg_text), debug->yaw_angle_meas_deg, 6U);
-    rtt_task_format_fixed(meas_speed_text, sizeof(meas_speed_text), debug->yaw_speed_meas_dps, 6U);
-    rtt_task_format_fixed(current_pid_text, sizeof(current_pid_text), debug->yaw_current_pid, 6U);
-    rtt_task_format_fixed(ff_total_text, sizeof(ff_total_text), debug->yaw_ff_total, 6U);
-
-    SEGGER_RTT_printf(k_rtt_buffer_index,
-                      "sample,%lu,hold,yaw,%s,%s,%s,%lu,%s,%s,%d,%d,%s,%s\n",
-                      (unsigned long)s_hold_ctx.run_id,
-                      pitch_deg_text,
-                      target_deg_text,
-                      s_hold_ctx.direction,
-                      (unsigned long)debug->tick_ms,
-                      meas_deg_text,
-                      meas_speed_text,
-                      (int)debug->yaw_current_meas,
-                      (int)debug->yaw_current_cmd,
-                      current_pid_text,
-                      ff_total_text);
-}
-
-void rtt_task_finish_hold(bool aborted)
-{
-    const uint32_t run_id = s_hold_ctx.run_id;
-
-    s_test_state = RTT_TEST_IDLE;
-    s_hold_ctx.point_index = 0U;
-    s_hold_ctx.phase_start_tick_ms = 0U;
-    s_hold_ctx.yaw_target_deg = 0.0f;
-    s_hold_ctx.pitch_target_deg = 0.0f;
-    s_hold_ctx.direction = "pos";
-    s_hold_ctx.csv_header_sent = false;
-    s_hold_ctx.wait_imu_logged = false;
-
-    rtt_task_resume_dddebug();
-
-    if (aborted)
-    {
-        SEGGER_RTT_printf(k_rtt_buffer_index,
-                          "#DONE aborted run_id=%lu\n",
-                          (unsigned long)run_id);
-        return;
-    }
-
-    SEGGER_RTT_printf(k_rtt_buffer_index,
-                      "#DONE completed run_id=%lu\n",
-                      (unsigned long)run_id);
-}
-
-void rtt_task_abort_hold()
-{
-    if (!rtt_task_is_active())
-    {
-        rtt_task_emit_comment("ERR hold not_running");
-        return;
-    }
-
-    rtt_task_motor_manage().lock();
-    s_test_state = RTT_TEST_ABORTING;
-}
-
-void rtt_task_start_hold(uint32_t now_tick_ms, float pitch_target_deg)
-{
-    char pitch_text[24] = {0};
-    char yaw_min_text[24] = {0};
-    char yaw_max_text[24] = {0};
-    char yaw_step_text[24] = {0};
-
-    if (rtt_task_is_active())
-    {
-        rtt_task_emit_comment("ERR hold busy");
-        return;
-    }
-
-    if (!rtt_task_suspend_dddebug())
-    {
-        return;
-    }
-
-    rtt_task_init_runtime();
-
-    s_hold_ctx.run_id = s_next_run_id++;
-    s_hold_ctx.pitch_target_deg = pitch_target_deg;
-    s_hold_ctx.csv_header_sent = false;
-    s_hold_ctx.wait_imu_logged = false;
-    rtt_task_format_fixed(pitch_text, sizeof(pitch_text), s_hold_ctx.pitch_target_deg, 3U);
-    rtt_task_format_fixed(yaw_min_text, sizeof(yaw_min_text), k_yaw_min_deg, 1U);
-    rtt_task_format_fixed(yaw_max_text, sizeof(yaw_max_text), k_yaw_max_deg, 1U);
-    rtt_task_format_fixed(yaw_step_text, sizeof(yaw_step_text), k_yaw_step_deg, 1U);
-
-    SEGGER_RTT_printf(k_rtt_buffer_index,
-                      "#ACK ff hold start run_id=%lu axis=yaw pitch_deg=%s yaw_min_deg=%s yaw_max_deg=%s yaw_step_deg=%s settle_ms=%lu sample_ms=%lu\n",
-                      (unsigned long)s_hold_ctx.run_id,
-                      pitch_text,
-                      yaw_min_text,
-                      yaw_max_text,
-                      yaw_step_text,
-                      (unsigned long)k_settle_ms,
-                      (unsigned long)k_sample_ms);
-    rtt_task_select_point(0U, now_tick_ms);
-}
-
-void rtt_task_handle_command(char *line, uint32_t now_tick_ms)
-{
-    char *begin = line;
     char *end = nullptr;
 
-    if (line == nullptr)
+    if (text == nullptr)
     {
-        return;
+        return nullptr;
     }
 
-    while ((*begin != '\0') && std::isspace((unsigned char)*begin))
+    while ((*text != '\0') && std::isspace((unsigned char)*text))
     {
-        ++begin;
+        ++text;
     }
 
-    end = begin + std::strlen(begin);
-    while ((end > begin) && std::isspace((unsigned char)end[-1]))
+    end = text + std::strlen(text);
+    while ((end > text) && std::isspace((unsigned char)end[-1]))
     {
         --end;
     }
     *end = '\0';
 
-    if (*begin == '\0')
+    return text;
+}
+
+char *next_token(char **cursor)
+{
+    char *token = nullptr;
+
+    if ((cursor == nullptr) || (*cursor == nullptr))
     {
+        return nullptr;
+    }
+
+    while ((**cursor != '\0') && std::isspace((unsigned char)**cursor))
+    {
+        ++(*cursor);
+    }
+
+    if (**cursor == '\0')
+    {
+        return nullptr;
+    }
+
+    token = *cursor;
+    while ((**cursor != '\0') && !std::isspace((unsigned char)**cursor))
+    {
+        ++(*cursor);
+    }
+
+    if (**cursor != '\0')
+    {
+        **cursor = '\0';
+        ++(*cursor);
+    }
+
+    return token;
+}
+
+bool split_key_value(char *token, char **key, char **value)
+{
+    char *equals = nullptr;
+
+    if ((token == nullptr) || (key == nullptr) || (value == nullptr))
+    {
+        return false;
+    }
+
+    equals = std::strchr(token, '=');
+    if ((equals == nullptr) || (equals == token) || (equals[1] == '\0'))
+    {
+        return false;
+    }
+
+    *equals = '\0';
+    *key = token;
+    *value = equals + 1;
+    return true;
+}
+
+bool parse_float_text(const char *text, float *value)
+{
+    char *end = nullptr;
+
+    if ((text == nullptr) || (value == nullptr))
+    {
+        return false;
+    }
+
+    const float parsed = std::strtof(text, &end);
+    if ((end == text) || (end == nullptr) || (*end != '\0'))
+    {
+        return false;
+    }
+
+    *value = parsed;
+    return true;
+}
+
+bool parse_u32_text(const char *text, uint32_t *value)
+{
+    char *end = nullptr;
+
+    if ((text == nullptr) || (value == nullptr))
+    {
+        return false;
+    }
+
+    const unsigned long parsed = std::strtoul(text, &end, 10);
+    if ((end == text) || (end == nullptr) || (*end != '\0'))
+    {
+        return false;
+    }
+
+    *value = (uint32_t)parsed;
+    return true;
+}
+
+bool parse_bool_text(const char *text, bool *value)
+{
+    if ((text == nullptr) || (value == nullptr))
+    {
+        return false;
+    }
+
+    if ((std::strcmp(text, "1") == 0) || (std::strcmp(text, "true") == 0) || (std::strcmp(text, "on") == 0))
+    {
+        *value = true;
+        return true;
+    }
+
+    if ((std::strcmp(text, "0") == 0) || (std::strcmp(text, "false") == 0) || (std::strcmp(text, "off") == 0))
+    {
+        *value = false;
+        return true;
+    }
+
+    return false;
+}
+
+bool parse_axis_text(const char *text, DebugTuneAxis *axis)
+{
+    if ((text == nullptr) || (axis == nullptr))
+    {
+        return false;
+    }
+
+    if (std::strcmp(text, "yaw") == 0)
+    {
+        *axis = DEBUG_TUNE_AXIS_YAW;
+        return true;
+    }
+
+    if (std::strcmp(text, "pitch") == 0)
+    {
+        *axis = DEBUG_TUNE_AXIS_PITCH;
+        return true;
+    }
+
+    if (std::strcmp(text, "both") == 0)
+    {
+        *axis = DEBUG_TUNE_AXIS_BOTH;
+        return true;
+    }
+
+    return false;
+}
+
+bool copy_arg_value(const char *args, const char *name, char *value, size_t value_size, bool required)
+{
+    const size_t name_len = (name == nullptr) ? 0U : std::strlen(name);
+    const char *cursor = args;
+
+    if ((args == nullptr) || (name == nullptr) || (value == nullptr) || (value_size == 0U))
+    {
+        return !required;
+    }
+
+    while (*cursor != '\0')
+    {
+        while ((*cursor != '\0') && std::isspace((unsigned char)*cursor))
+        {
+            ++cursor;
+        }
+
+        const char *token_begin = cursor;
+        while ((*cursor != '\0') && !std::isspace((unsigned char)*cursor))
+        {
+            ++cursor;
+        }
+        const char *token_end = cursor;
+
+        const char *equals = token_begin;
+        while ((equals < token_end) && (*equals != '='))
+        {
+            ++equals;
+        }
+
+        if ((equals == token_end) || (equals == token_begin) || (equals + 1 >= token_end))
+        {
+            continue;
+        }
+
+        if (((size_t)(equals - token_begin) == name_len) &&
+            (std::strncmp(token_begin, name, name_len) == 0))
+        {
+            const size_t raw_len = (size_t)(token_end - equals - 1);
+            if (raw_len + 1U > value_size)
+            {
+                return false;
+            }
+
+            std::memcpy(value, equals + 1, raw_len);
+            value[raw_len] = '\0';
+            return true;
+        }
+    }
+
+    return !required;
+}
+
+bool find_float_arg(char *args, const char *name, float *value, bool required)
+{
+    char raw_value[32] = {0};
+
+    if (!copy_arg_value(args, name, raw_value, sizeof(raw_value), required))
+    {
+        return false;
+    }
+
+    if (raw_value[0] == '\0')
+    {
+        return !required;
+    }
+
+    return parse_float_text(raw_value, value);
+}
+
+bool find_u32_arg(char *args, const char *name, uint32_t *value, bool required)
+{
+    char raw_value[32] = {0};
+
+    if (!copy_arg_value(args, name, raw_value, sizeof(raw_value), required))
+    {
+        return false;
+    }
+
+    if (raw_value[0] == '\0')
+    {
+        return !required;
+    }
+
+    return parse_u32_text(raw_value, value);
+}
+
+bool find_bool_arg(char *args, const char *name, bool *value, bool required)
+{
+    char raw_value[16] = {0};
+
+    if (!copy_arg_value(args, name, raw_value, sizeof(raw_value), required))
+    {
+        return false;
+    }
+
+    if (raw_value[0] == '\0')
+    {
+        return !required;
+    }
+
+    return parse_bool_text(raw_value, value);
+}
+
+bool find_axis_arg(char *args, DebugTuneAxis *axis, bool required)
+{
+    char raw_value[16] = {0};
+
+    if (!copy_arg_value(args, "axis", raw_value, sizeof(raw_value), required))
+    {
+        return false;
+    }
+
+    if (raw_value[0] == '\0')
+    {
+        return !required;
+    }
+
+    return parse_axis_text(raw_value, axis);
+}
+
+bool apply_single_set(char *assignment)
+{
+    char *key = nullptr;
+    char *value_text = nullptr;
+    float value = 0.0f;
+
+    if (!split_key_value(assignment, &key, &value_text) || !parse_float_text(value_text, &value))
+    {
+        rtt_write_comment("ERR invalid_set");
+        return false;
+    }
+
+    if (!debug_tune_set_param(key, value))
+    {
+        SEGGER_RTT_printf(k_rtt_buffer_index, "#ERR unknown_param name=%s\n", key);
+        return false;
+    }
+
+    char formatted_value[24] = {0};
+    format_fixed(formatted_value, sizeof(formatted_value), value, 6U);
+    SEGGER_RTT_printf(k_rtt_buffer_index, "#ACK tune set %s=%s\n", key, formatted_value);
+    return true;
+}
+
+void handle_tune_command(char *subcommand, char *args, uint32_t now_tick_ms)
+{
+    if (subcommand == nullptr)
+    {
+        rtt_write_comment("ERR tune missing_subcommand");
         return;
     }
 
-    if ((std::strncmp(begin, "ff hold start", 13U) == 0) &&
-        ((begin[13] == '\0') || std::isspace((unsigned char)begin[13])))
+    if (std::strcmp(subcommand, "get") == 0)
     {
-        float pitch_target_deg = 0.0f;
-        char *arg_text = begin + 13U;
+        debug_tune_print_params();
+        rtt_write_comment("ACK tune get");
+        return;
+    }
 
-        while ((*arg_text != '\0') && std::isspace((unsigned char)*arg_text))
-        {
-            ++arg_text;
-        }
+    if (std::strcmp(subcommand, "off") == 0)
+    {
+        debug_tune_disable();
+        rtt_write_comment("ACK tune off");
+        return;
+    }
 
-        if ((*arg_text != '\0') && !rtt_task_try_parse_pitch_arg(arg_text, &pitch_target_deg))
+    if (std::strcmp(subcommand, "set") == 0)
+    {
+        char *cursor = args;
+        char *token = next_token(&cursor);
+        if (token == nullptr)
         {
-            SEGGER_RTT_printf(k_rtt_buffer_index, "#ERR invalid hold args=%s\n", begin);
+            rtt_write_comment("ERR tune set missing_assignment");
             return;
         }
 
-        rtt_task_start_hold(now_tick_ms, pitch_target_deg);
+        (void)apply_single_set(token);
         return;
     }
 
-    if (std::strcmp(begin, "ff hold stop") == 0)
+    if (std::strcmp(subcommand, "sample") == 0)
     {
-        rtt_task_abort_hold();
-        return;
-    }
+        char *cursor = args;
+        char *state = next_token(&cursor);
+        uint32_t rate_ms = 10U;
 
-    if ((std::strcmp(begin, "ff trap start") == 0) ||
-        (std::strcmp(begin, "ff sine start") == 0))
-    {
-        SEGGER_RTT_printf(k_rtt_buffer_index, "#ERR unsupported command=%s\n", begin);
-        return;
-    }
-
-    if ((std::strncmp(begin, "ff set_kv", 9U) == 0) &&
-        ((begin[9] == '\0') || std::isspace((unsigned char)begin[9])))
-    {
-        const char *arg_text = begin + 9U;
-        while ((*arg_text != '\0') && std::isspace((unsigned char)*arg_text))
+        if (state == nullptr)
         {
-            ++arg_text;
+            rtt_write_comment("ERR tune sample missing_state");
+            return;
         }
 
-        if (!rtt_task_apply_ff_update(arg_text, false))
+        (void)find_u32_arg(cursor, "rate_ms", &rate_ms, false);
+        if (std::strcmp(state, "on") == 0)
         {
-            SEGGER_RTT_printf(k_rtt_buffer_index, "#ERR invalid ff set_kv args=%s\n", begin);
+            debug_tune_set_sample(true, rate_ms);
+            SEGGER_RTT_printf(k_rtt_buffer_index, "#ACK tune sample on rate_ms=%lu\n", (unsigned long)rate_ms);
         }
-        return;
-    }
-
-    if ((std::strncmp(begin, "ff set_bias", 11U) == 0) &&
-        ((begin[11] == '\0') || std::isspace((unsigned char)begin[11])))
-    {
-        const char *arg_text = begin + 11U;
-        while ((*arg_text != '\0') && std::isspace((unsigned char)*arg_text))
+        else if (std::strcmp(state, "off") == 0)
         {
-            ++arg_text;
+            debug_tune_set_sample(false, rate_ms);
+            rtt_write_comment("ACK tune sample off");
         }
-
-        if (!rtt_task_apply_ff_update(arg_text, true))
+        else
         {
-            SEGGER_RTT_printf(k_rtt_buffer_index, "#ERR invalid ff set_bias args=%s\n", begin);
+            rtt_write_comment("ERR tune sample invalid_state");
         }
         return;
     }
 
-    SEGGER_RTT_printf(k_rtt_buffer_index, "#ERR unknown command=%s\n", begin);
+    if (std::strcmp(subcommand, "hold") == 0)
+    {
+        float yaw = 0.0f;
+        float pitch = 0.0f;
+        bool planner = true;
+
+        if (!find_float_arg(args, "yaw", &yaw, true) ||
+            !find_float_arg(args, "pitch", &pitch, true) ||
+            !find_bool_arg(args, "planner", &planner, false))
+        {
+            rtt_write_comment("ERR tune hold invalid_args");
+            return;
+        }
+
+        (void)debug_tune_enable_hold(yaw, pitch, planner, now_tick_ms);
+        char yaw_text[24] = {0};
+        char pitch_text[24] = {0};
+        format_fixed(yaw_text, sizeof(yaw_text), yaw, 6U);
+        format_fixed(pitch_text, sizeof(pitch_text), pitch, 6U);
+        SEGGER_RTT_printf(k_rtt_buffer_index,
+                          "#ACK tune hold yaw=%s pitch=%s planner=%u\n",
+                          yaw_text,
+                          pitch_text,
+                          planner ? 1U : 0U);
+        return;
+    }
+
+    if ((std::strcmp(subcommand, "step") == 0) ||
+        (std::strcmp(subcommand, "sine") == 0) ||
+        (std::strcmp(subcommand, "ramp") == 0))
+    {
+        DebugTuneAxis axis = DEBUG_TUNE_AXIS_YAW;
+        float amp = 0.0f;
+        float bias = 0.0f;
+        float other = 0.0f;
+        float freq_hz = 0.2f;
+        uint32_t hold_ms = 1000U;
+        uint32_t ramp_ms = 1000U;
+        bool planner = false;
+        bool ok = false;
+
+        if (!find_axis_arg(args, &axis, true) ||
+            !find_float_arg(args, "amp", &amp, true) ||
+            !find_float_arg(args, "bias", &bias, false) ||
+            !find_float_arg(args, "other", &other, false) ||
+            !find_bool_arg(args, "planner", &planner, false))
+        {
+            rtt_write_comment("ERR tune angle invalid_args");
+            return;
+        }
+
+        if (std::strcmp(subcommand, "step") == 0)
+        {
+            if (!find_u32_arg(args, "hold_ms", &hold_ms, false))
+            {
+                rtt_write_comment("ERR tune step invalid_hold_ms");
+                return;
+            }
+            ok = debug_tune_enable_step(axis, amp, hold_ms, bias, other, planner, now_tick_ms);
+        }
+        else if (std::strcmp(subcommand, "sine") == 0)
+        {
+            if (!find_float_arg(args, "freq", &freq_hz, true))
+            {
+                rtt_write_comment("ERR tune sine invalid_freq");
+                return;
+            }
+            ok = debug_tune_enable_sine(axis, amp, freq_hz, bias, other, planner, now_tick_ms);
+        }
+        else
+        {
+            if (!find_u32_arg(args, "ramp_ms", &ramp_ms, false) ||
+                !find_u32_arg(args, "hold_ms", &hold_ms, false))
+            {
+                rtt_write_comment("ERR tune ramp invalid_time");
+                return;
+            }
+            ok = debug_tune_enable_ramp(axis, amp, ramp_ms, hold_ms, bias, other, planner, now_tick_ms);
+        }
+
+        if (!ok)
+        {
+            rtt_write_comment("ERR tune angle rejected");
+            return;
+        }
+
+        char amp_text[24] = {0};
+        char bias_text[24] = {0};
+        char other_text[24] = {0};
+        format_fixed(amp_text, sizeof(amp_text), amp, 6U);
+        format_fixed(bias_text, sizeof(bias_text), bias, 6U);
+        format_fixed(other_text, sizeof(other_text), other, 6U);
+        SEGGER_RTT_printf(k_rtt_buffer_index,
+                          "#ACK tune %s axis=%s amp=%s bias=%s other=%s planner=%u\n",
+                          subcommand,
+                          debug_tune_axis_name(axis),
+                          amp_text,
+                          bias_text,
+                          other_text,
+                          planner ? 1U : 0U);
+        return;
+    }
+
+    if ((std::strcmp(subcommand, "speed_hold") == 0) ||
+        (std::strcmp(subcommand, "speed_step") == 0) ||
+        (std::strcmp(subcommand, "speed_sine") == 0))
+    {
+        DebugTuneAxis axis = DEBUG_TUNE_AXIS_YAW;
+        float speed = 0.0f;
+        float amp = 0.0f;
+        float other = 0.0f;
+        float freq_hz = 0.2f;
+        uint32_t hold_ms = 1000U;
+        bool ok = false;
+
+        if (!find_axis_arg(args, &axis, true) ||
+            !find_float_arg(args, "other", &other, false))
+        {
+            rtt_write_comment("ERR tune speed invalid_args");
+            return;
+        }
+
+        if (std::strcmp(subcommand, "speed_hold") == 0)
+        {
+            if (!find_float_arg(args, "speed", &speed, true))
+            {
+                rtt_write_comment("ERR tune speed_hold invalid_speed");
+                return;
+            }
+            ok = debug_tune_enable_speed_hold(axis, speed, other, now_tick_ms);
+        }
+        else if (std::strcmp(subcommand, "speed_step") == 0)
+        {
+            if (!find_float_arg(args, "amp", &amp, true) ||
+                !find_u32_arg(args, "hold_ms", &hold_ms, false))
+            {
+                rtt_write_comment("ERR tune speed_step invalid_args");
+                return;
+            }
+            ok = debug_tune_enable_speed_step(axis, amp, hold_ms, other, now_tick_ms);
+        }
+        else
+        {
+            if (!find_float_arg(args, "amp", &amp, true) ||
+                !find_float_arg(args, "freq", &freq_hz, true))
+            {
+                rtt_write_comment("ERR tune speed_sine invalid_args");
+                return;
+            }
+            ok = debug_tune_enable_speed_sine(axis, amp, freq_hz, other, now_tick_ms);
+        }
+
+        if (!ok)
+        {
+            rtt_write_comment("ERR tune speed rejected");
+            return;
+        }
+
+        char other_text[24] = {0};
+        format_fixed(other_text, sizeof(other_text), other, 6U);
+        SEGGER_RTT_printf(k_rtt_buffer_index,
+                          "#ACK tune %s axis=%s other=%s\n",
+                          subcommand,
+                          debug_tune_axis_name(axis),
+                          other_text);
+        return;
+    }
+
+    SEGGER_RTT_printf(k_rtt_buffer_index, "#ERR tune unknown_subcommand=%s\n", subcommand);
 }
 
-void rtt_task_poll_commands(uint32_t now_tick_ms)
+void handle_legacy_ff_command(char *subcommand, char *args, uint32_t now_tick_ms)
+{
+    if (subcommand == nullptr)
+    {
+        rtt_write_comment("ERR ff missing_subcommand");
+        return;
+    }
+
+    if (std::strcmp(subcommand, "set_kv") == 0)
+    {
+        char axis_text[16] = {0};
+        char param_name[32] = {0};
+        char *cursor = args;
+        char *token = next_token(&cursor);
+        char *axis = nullptr;
+        char *value_text = nullptr;
+        float value = 0.0f;
+
+        if ((token == nullptr) ||
+            !split_key_value(token, &axis, &value_text) ||
+            !parse_float_text(value_text, &value))
+        {
+            rtt_write_comment("ERR invalid ff set_kv args");
+            return;
+        }
+
+        std::strncpy(axis_text, axis, sizeof(axis_text) - 1U);
+        if (std::strcmp(axis_text, "yaw") == 0)
+        {
+            std::strncpy(param_name, "yaw_k_vel_ff", sizeof(param_name) - 1U);
+        }
+        else if (std::strcmp(axis_text, "pitch") == 0)
+        {
+            std::strncpy(param_name, "pitch_k_vel_ff", sizeof(param_name) - 1U);
+        }
+        else
+        {
+            rtt_write_comment("ERR invalid ff axis");
+            return;
+        }
+
+        if (debug_tune_set_param(param_name, value))
+        {
+            char value_text[24] = {0};
+            format_fixed(value_text, sizeof(value_text), value, 6U);
+            SEGGER_RTT_printf(k_rtt_buffer_index, "#ACK ff set_kv axis=%s value=%s\n", axis_text, value_text);
+        }
+        return;
+    }
+
+    if (std::strcmp(subcommand, "set_bias") == 0)
+    {
+        char axis_text[16] = {0};
+        char param_name[32] = {0};
+        char *cursor = args;
+        char *token = next_token(&cursor);
+        char *axis = nullptr;
+        char *value_text = nullptr;
+        float value = 0.0f;
+
+        if ((token == nullptr) ||
+            !split_key_value(token, &axis, &value_text) ||
+            !parse_float_text(value_text, &value))
+        {
+            rtt_write_comment("ERR invalid ff set_bias args");
+            return;
+        }
+
+        std::strncpy(axis_text, axis, sizeof(axis_text) - 1U);
+        if (std::strcmp(axis_text, "yaw") == 0)
+        {
+            std::strncpy(param_name, "yaw_hold_ff", sizeof(param_name) - 1U);
+        }
+        else if (std::strcmp(axis_text, "pitch") == 0)
+        {
+            std::strncpy(param_name, "pitch_hold_ff", sizeof(param_name) - 1U);
+        }
+        else
+        {
+            rtt_write_comment("ERR invalid ff axis");
+            return;
+        }
+
+        if (debug_tune_set_param(param_name, value))
+        {
+            char value_text[24] = {0};
+            format_fixed(value_text, sizeof(value_text), value, 6U);
+            SEGGER_RTT_printf(k_rtt_buffer_index, "#ACK ff set_bias axis=%s value=%s\n", axis_text, value_text);
+        }
+        return;
+    }
+
+    if (std::strcmp(subcommand, "hold") == 0)
+    {
+        char *cursor = args;
+        char *action = next_token(&cursor);
+
+        if ((action != nullptr) && (std::strcmp(action, "stop") == 0))
+        {
+            debug_tune_disable();
+            rtt_write_comment("ACK ff hold stop");
+            return;
+        }
+
+        if ((action != nullptr) && (std::strcmp(action, "start") == 0))
+        {
+            float pitch = 0.0f;
+            (void)find_float_arg(cursor, "pitch", &pitch, false);
+            debug_tune_set_sample(true, 10U);
+            (void)debug_tune_enable_step(DEBUG_TUNE_AXIS_YAW, 45.0f, 500U, 0.0f, pitch, true, now_tick_ms);
+            char pitch_text[24] = {0};
+            format_fixed(pitch_text, sizeof(pitch_text), pitch, 6U);
+            SEGGER_RTT_printf(k_rtt_buffer_index,
+                              "#ACK ff hold start axis=yaw pitch_deg=%s note=legacy_maps_to_tune_step\n",
+                              pitch_text);
+            return;
+        }
+    }
+
+    SEGGER_RTT_printf(k_rtt_buffer_index, "#ERR ff unknown_subcommand=%s\n", subcommand);
+}
+
+void handle_command(char *line, uint32_t now_tick_ms)
+{
+    char *begin = trim(line);
+    char *cursor = begin;
+    char *command = next_token(&cursor);
+    char *subcommand = next_token(&cursor);
+
+    if ((begin == nullptr) || (*begin == '\0') || (command == nullptr))
+    {
+        return;
+    }
+
+    if (std::strcmp(command, "tune") == 0)
+    {
+        handle_tune_command(subcommand, cursor, now_tick_ms);
+        return;
+    }
+
+    if (std::strcmp(command, "ff") == 0)
+    {
+        handle_legacy_ff_command(subcommand, cursor, now_tick_ms);
+        return;
+    }
+
+    SEGGER_RTT_printf(k_rtt_buffer_index, "#ERR unknown command=%s\n", command);
+}
+
+void poll_commands(uint32_t now_tick_ms)
 {
     char ch = '\0';
 
@@ -642,7 +790,7 @@ void rtt_task_poll_commands(uint32_t now_tick_ms)
         if (ch == '\n')
         {
             s_command_buffer[s_command_length] = '\0';
-            rtt_task_handle_command(s_command_buffer, now_tick_ms);
+            handle_command(s_command_buffer, now_tick_ms);
             s_command_length = 0U;
             continue;
         }
@@ -650,114 +798,11 @@ void rtt_task_poll_commands(uint32_t now_tick_ms)
         if (s_command_length + 1U >= k_command_buffer_size)
         {
             s_command_length = 0U;
-            rtt_task_emit_comment("ERR command_too_long");
+            rtt_write_comment("ERR command_too_long");
             continue;
         }
 
         s_command_buffer[s_command_length++] = ch;
-    }
-}
-
-bool rtt_task_control_ready()
-{
-    imu_update();
-    imu_get_data(&s_imu_data);
-    rtt_task_motor_manage().update_feedback();
-
-    if (imu_attitude_ready())
-    {
-        if (s_hold_ctx.wait_imu_logged)
-        {
-            rtt_task_emit_comment("INFO imu_ready");
-            s_hold_ctx.wait_imu_logged = false;
-        }
-
-        return true;
-    }
-
-    if (!s_hold_ctx.wait_imu_logged)
-    {
-        rtt_task_emit_comment("INFO waiting_imu_ready");
-        s_hold_ctx.wait_imu_logged = true;
-    }
-
-    rtt_task_motor_manage().lock();
-    return false;
-}
-
-void rtt_task_drive_control()
-{
-    rtt_task_motor_manage().set_world_target(s_hold_ctx.yaw_target_deg,
-                                             s_hold_ctx.pitch_target_deg,
-                                             s_imu_data.yaw,
-                                             s_imu_data.pitch,
-                                             true);
-    rtt_task_motor_manage().send_can_cmd();
-}
-
-void rtt_task_step_state_machine(uint32_t now_tick_ms)
-{
-    const uint32_t elapsed_ms = now_tick_ms - s_hold_ctx.phase_start_tick_ms;
-
-    if (s_test_state == RTT_TEST_ABORTING)
-    {
-        rtt_task_finish_hold(true);
-        return;
-    }
-
-    if (!rtt_task_is_active())
-    {
-        return;
-    }
-
-    if (!rtt_task_control_ready())
-    {
-        return;
-    }
-
-    rtt_task_drive_control();
-
-    if (s_test_state == RTT_TEST_HOLD_SWEEP_SAMPLING)
-    {
-        rtt_task_emit_sample();
-    }
-
-    switch (s_test_state)
-    {
-        case RTT_TEST_HOLD_SWEEP_MOVING:
-            s_test_state = RTT_TEST_HOLD_SWEEP_SETTLING;
-            s_hold_ctx.phase_start_tick_ms = now_tick_ms;
-            break;
-
-        case RTT_TEST_HOLD_SWEEP_SETTLING:
-            if (elapsed_ms >= k_settle_ms)
-            {
-                s_test_state = RTT_TEST_HOLD_SWEEP_SAMPLING;
-                s_hold_ctx.phase_start_tick_ms = now_tick_ms;
-                rtt_task_emit_csv_header_once();
-            }
-            break;
-
-        case RTT_TEST_HOLD_SWEEP_SAMPLING:
-            if (elapsed_ms >= k_sample_ms)
-            {
-                const size_t next_point = s_hold_ctx.point_index + 1U;
-
-                if (next_point >= k_total_points)
-                {
-                    rtt_task_finish_hold(false);
-                }
-                else
-                {
-                    rtt_task_select_point(next_point, now_tick_ms);
-                }
-            }
-            break;
-
-        case RTT_TEST_IDLE:
-        case RTT_TEST_ABORTING:
-        default:
-            break;
     }
 }
 
@@ -766,22 +811,20 @@ void rtt_task_step_state_machine(uint32_t now_tick_ms)
 extern "C" void StartRTTTask(void *argument)
 {
     TickType_t last_wake_time = xTaskGetTickCount();
-    osDelay(osWaitForever);
     (void)argument;
 
     if (!s_rtt_initialized)
     {
         SEGGER_RTT_Init();
         s_rtt_initialized = true;
-        rtt_task_emit_comment("INFO RTTTask online");
+        rtt_write_comment("INFO RTTTask online");
     }
 
     for (;;)
     {
         const uint32_t now_tick_ms = osKernelGetTickCount();
 
-        rtt_task_poll_commands(now_tick_ms);
-        rtt_task_step_state_machine(now_tick_ms);
+        poll_commands(now_tick_ms);
 
         vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(k_task_period_ms));
     }

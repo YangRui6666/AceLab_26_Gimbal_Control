@@ -45,6 +45,8 @@ add_executable(${CMAKE_PROJECT_NAME}
         User/Task/ctrl_task.cpp
         User/Task/ctrl_msg_queue.c
         User/Task/communicate_task.cpp
+        User/Task/debug_tune.cpp
+        User/Task/debug_tune.h
         User/Task/rtt_task.cpp
         User/Module/MotorManage.h
         User/Module/imu_fusion.cpp

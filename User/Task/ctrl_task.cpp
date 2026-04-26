@@ -8,6 +8,7 @@
 #include "bsp_usb.h"
 #include "cmsis_os2.h"
 #include "ctrl_msg_queue.h"
+#include "debug_tune.h"
 #include "FreeRTOS.h"
 #include "imu_fusion.h"
 #include "MotorManage.h"
@@ -826,10 +827,17 @@ extern "C" void StartCtrlTask(void *argument)
         {
             ctrl_ctx.world_target_synced = false;
             ctrl_reset_auto_aim_state();
+            debug_tune_emit_sample_if_due(now_tick);
             motor_manage.lock();
             ctrl_send_status_if_due(now_tick, imu_data);
             vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(k_ctrl_period_ms));
             continue;
+        }
+
+        if (debug_tune_was_disabled(true))
+        {
+            ctrl_ctx.world_target_synced = false;
+            ctrl_enter_stable();
         }
 
         if (!ctrl_ctx.world_target_synced)
@@ -840,13 +848,33 @@ extern "C" void StartCtrlTask(void *argument)
         if (ctrl_ctx.protect_state == PROTECT_LOCK)
         {
             ctrl_reset_auto_aim_state();
+            debug_tune_emit_sample_if_due(now_tick);
             motor_manage.lock();
             ctrl_send_status_if_due(now_tick, imu_data);
             vTaskDelayUntil(&last_wake_time, pdMS_TO_TICKS(k_ctrl_period_ms));
             continue;
         }
 
-        if (ctrl_ctx.work_mode == WORK_MODE_SEARCH)
+        if (debug_tune_is_enabled())
+        {
+            reference_ready = debug_tune_eval(now_tick,
+                                             ctrl_ctx.current_attitude.yaw,
+                                             ctrl_ctx.current_attitude.pitch,
+                                             &control_reference);
+
+            if (reference_ready)
+            {
+                ctrl_ctx.yaw_world_target = control_reference.yaw.pos_ref_deg;
+                ctrl_ctx.pitch_world_target = control_reference.pitch.pos_ref_deg;
+                ctrl_ctx.yaw_pos_ref = control_reference.yaw.pos_ref_deg;
+                ctrl_ctx.yaw_vel_ref = control_reference.yaw.vel_ref_dps;
+                ctrl_ctx.yaw_acc_ref = control_reference.yaw.acc_ref_dps2;
+                ctrl_ctx.pitch_pos_ref = control_reference.pitch.pos_ref_deg;
+                ctrl_ctx.pitch_vel_ref = control_reference.pitch.vel_ref_dps;
+                ctrl_ctx.pitch_acc_ref = control_reference.pitch.acc_ref_dps2;
+            }
+        }
+        else if (ctrl_ctx.work_mode == WORK_MODE_SEARCH)
         {
             ctrl_update_search_target(now_tick);
             ctrl_build_direct_reference(&control_reference,
@@ -898,11 +926,12 @@ extern "C" void StartCtrlTask(void *argument)
                                                ctrl_ctx.current_attitude.pitch);
             motor_manage.send_can_cmd();
         }
-        else if (ctrl_ctx.work_mode != WORK_MODE_AUTO_AIM)
+        else if ((ctrl_ctx.work_mode != WORK_MODE_AUTO_AIM) && !debug_tune_is_enabled())
         {
             motor_manage.lock();
         }
 
+        debug_tune_emit_sample_if_due(now_tick);
         ctrl_send_status_if_due(now_tick, imu_data);
 
         auto a = uxTaskGetStackHighWaterMark(NULL);
