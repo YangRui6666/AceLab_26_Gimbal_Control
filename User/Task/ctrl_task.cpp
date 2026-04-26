@@ -568,6 +568,7 @@ bool ctrl_build_auto_aim_reference(uint32_t now_tick, MotorControlReference *ref
             ctrl_build_planner_reference(reference,
                                          ctrl_ctx.auto_aim_predicted_yaw,
                                          ctrl_ctx.auto_aim_predicted_pitch);
+
             ctrl_ctx.yaw_pos_ref = ctrl_ctx.auto_aim_predicted_yaw;
             ctrl_ctx.yaw_vel_ref = 0.0f;
             ctrl_ctx.yaw_acc_ref = 0.0f;
@@ -879,6 +880,7 @@ extern "C" void StartCtrlTask(void *argument)
             ctrl_build_planner_reference(&control_reference,
                                          ctrl_ctx.yaw_world_target,
                                          ctrl_ctx.pitch_world_target);
+
             control_reference.aim_mode = MOTOR_AIM_MODE_NONE;
             ctrl_ctx.yaw_pos_ref = ctrl_ctx.yaw_world_target;
             ctrl_ctx.yaw_vel_ref = 0.0f;

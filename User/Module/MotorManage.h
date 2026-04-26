@@ -46,10 +46,12 @@ typedef struct
     float yaw_max_vel_dps;
     float yaw_max_acc_dps2;
     float yaw_k_vel_ff;
+    float yaw_hold_ff;
 
     float pitch_max_vel_dps;
     float pitch_max_acc_dps2;
     float pitch_k_vel_ff;
+    float pitch_hold_ff;
 } MotorManageRuntimeParams;
 
 typedef struct

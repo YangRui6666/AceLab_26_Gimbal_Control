@@ -39,8 +39,10 @@
     <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="把视觉输入改成绝对角度">
       <change beforePath="$PROJECT_DIR$/.idea/debugServers/ST_LINK.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/debugServers/ST_LINK.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Bsp/Src/bsp_usb.c" beforeDir="false" afterPath="$PROJECT_DIR$/User/Bsp/Src/bsp_usb.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Task/debug_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/debug_task.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Task/rtt_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/rtt_task.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -51,7 +53,7 @@
     <option name="formatViaClangd" value="false" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="5183" />
+    <option name="cachedIndexableFilesCount" value="5184" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug - Debug" />
@@ -208,6 +210,7 @@
       <workItem from="1777125384951" duration="6416000" />
       <workItem from="1777168195895" duration="1580000" />
       <workItem from="1777170151159" duration="1464000" />
+      <workItem from="1777188196573" duration="627000" />
     </task>
     <task id="LOCAL-00001" summary="搭建起来一个自己的框架">
       <option name="closed" value="true" />

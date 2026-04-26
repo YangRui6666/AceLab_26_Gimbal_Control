@@ -176,8 +176,8 @@ volatile MotorManageRuntimeParams g_motor_manage_runtime_params = {
     30.0f, 5.0f, 0.0f,
     18.0f, 4.0f, 0.0f,
     15.0f, 3.0f, 0.0f,
-    180.0f, 720.0f, 50.0f,
-    120.0f, 480.0f, 0.08f
+    180.0f, 720.0f, 50.0f, 0.0f,
+    120.0f, 480.0f, 0.08f, 0.0f
 };
 
 MotorManage::MotorManage()
@@ -200,8 +200,8 @@ MotorManage::MotorManage()
                       25.0f, 5.0f, 0.0f,
                       18.0f, 4.0f, 0.0f,
                       15.0f, 3.0f, 0.0f,
-                      180.0f, 720.0f, 20.0f,
-                      120.0f, 480.0f, 0.08f}
+                      180.0f, 720.0f, 20.0f, 0.0f,
+                      120.0f, 480.0f, 0.08f, 0.0f}
 {
     yaw_.init();
     pitch_.init();
@@ -254,9 +254,11 @@ void MotorManage::copy_runtime_params(MotorManageRuntimeParams *dst, const Motor
     dst->yaw_max_vel_dps = src.yaw_max_vel_dps;
     dst->yaw_max_acc_dps2 = src.yaw_max_acc_dps2;
     dst->yaw_k_vel_ff = src.yaw_k_vel_ff;
+    dst->yaw_hold_ff = src.yaw_hold_ff;
     dst->pitch_max_vel_dps = src.pitch_max_vel_dps;
     dst->pitch_max_acc_dps2 = src.pitch_max_acc_dps2;
     dst->pitch_k_vel_ff = src.pitch_k_vel_ff;
+    dst->pitch_hold_ff = src.pitch_hold_ff;
 }
 
 void MotorManage::copy_runtime_params(MotorManageRuntimeParams *dst, const volatile MotorManageRuntimeParams &src)
@@ -281,9 +283,11 @@ void MotorManage::copy_runtime_params(MotorManageRuntimeParams *dst, const volat
     dst->yaw_max_vel_dps = src.yaw_max_vel_dps;
     dst->yaw_max_acc_dps2 = src.yaw_max_acc_dps2;
     dst->yaw_k_vel_ff = src.yaw_k_vel_ff;
+    dst->yaw_hold_ff = src.yaw_hold_ff;
     dst->pitch_max_vel_dps = src.pitch_max_vel_dps;
     dst->pitch_max_acc_dps2 = src.pitch_max_acc_dps2;
     dst->pitch_k_vel_ff = src.pitch_k_vel_ff;
+    dst->pitch_hold_ff = src.pitch_hold_ff;
 }
 
 void MotorManage::copy_runtime_params(volatile MotorManageRuntimeParams *dst, const MotorManageRuntimeParams &src)
@@ -308,9 +312,11 @@ void MotorManage::copy_runtime_params(volatile MotorManageRuntimeParams *dst, co
     dst->yaw_max_vel_dps = src.yaw_max_vel_dps;
     dst->yaw_max_acc_dps2 = src.yaw_max_acc_dps2;
     dst->yaw_k_vel_ff = src.yaw_k_vel_ff;
+    dst->yaw_hold_ff = src.yaw_hold_ff;
     dst->pitch_max_vel_dps = src.pitch_max_vel_dps;
     dst->pitch_max_acc_dps2 = src.pitch_max_acc_dps2;
     dst->pitch_k_vel_ff = src.pitch_k_vel_ff;
+    dst->pitch_hold_ff = src.pitch_hold_ff;
 }
 
 void MotorManage::apply_runtime_params(const MotorManageRuntimeParams &params)
@@ -643,6 +649,7 @@ void MotorManage::set_control_reference(const MotorControlReference &reference,
         yaw_speed_target = yaw_speed_target_cache_;
         const float yaw_current_pid = yaw_pid_speed_.calculate(yaw_speed_target, yaw_state.speed_dps, inner_dt_s);
         clear_feedforward_state(&yaw_ff_state_);
+        yaw_ff_state_.hold_ff = runtime_params_.yaw_hold_ff;
         yaw_ff_state_.vel_ff =
             (runtime_params_.yaw_k_vel_ff * get_yaw_ff_gain_scale(reference.aim_mode)) * yaw_exec_vel;
         yaw_ff_state_.ff_total = yaw_ff_state_.hold_ff +
@@ -707,6 +714,7 @@ void MotorManage::set_control_reference(const MotorControlReference &reference,
         pitch_speed_target = pitch_speed_target_cache_;
         const float pitch_current_pid = pitch_pid_speed_.calculate(pitch_speed_target, pitch_state.speed_dps, inner_dt_s);
         clear_feedforward_state(&pitch_ff_state_);
+        pitch_ff_state_.hold_ff = runtime_params_.pitch_hold_ff;
         pitch_ff_state_.vel_ff = runtime_params_.pitch_k_vel_ff * (-pitch_exec_vel);
         pitch_ff_state_.ff_total = pitch_ff_state_.hold_ff +
                                    pitch_ff_state_.boot_bias_ff +

@@ -114,6 +114,136 @@ bool rtt_task_try_parse_pitch_arg(const char *text, float *pitch_deg)
     return true;
 }
 
+bool rtt_task_try_parse_axis_value_arg(const char *text, char *axis_text, size_t axis_text_size, float *value)
+{
+    const char *value_text = nullptr;
+    char *parse_end = nullptr;
+
+    if ((text == nullptr) || (axis_text == nullptr) || (axis_text_size == 0U) || (value == nullptr))
+    {
+        return false;
+    }
+
+    while ((*text != '\0') && std::isspace((unsigned char)*text))
+    {
+        ++text;
+    }
+
+    if (*text == '\0')
+    {
+        return false;
+    }
+
+    const char *axis_begin = text;
+    const char *axis_end = axis_begin;
+
+    while ((*axis_end != '\0') &&
+           !std::isspace((unsigned char)*axis_end) &&
+           (*axis_end != '='))
+    {
+        ++axis_end;
+    }
+
+    if (axis_end == axis_begin)
+    {
+        return false;
+    }
+
+    const size_t axis_len = (size_t)(axis_end - axis_begin);
+    if (axis_len + 1U > axis_text_size)
+    {
+        return false;
+    }
+
+    std::memcpy(axis_text, axis_begin, axis_len);
+    axis_text[axis_len] = '\0';
+
+    value_text = axis_end;
+    if (*value_text == '=')
+    {
+        ++value_text;
+    }
+    else
+    {
+        while ((*value_text != '\0') && std::isspace((unsigned char)*value_text))
+        {
+            ++value_text;
+        }
+    }
+
+    if (*value_text == '\0')
+    {
+        return false;
+    }
+
+    *value = std::strtof(value_text, &parse_end);
+    if ((parse_end == value_text) || (parse_end == nullptr))
+    {
+        return false;
+    }
+
+    while ((*parse_end != '\0') && std::isspace((unsigned char)*parse_end))
+    {
+        ++parse_end;
+    }
+
+    if (*parse_end != '\0')
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool rtt_task_apply_ff_update(const char *args, bool set_bias)
+{
+    char axis_text[16] = {0};
+    char value_text[24] = {0};
+    float value = 0.0f;
+    MotorManageRuntimeParams params = rtt_task_motor_manage().get_runtime_params();
+
+    if (!rtt_task_try_parse_axis_value_arg(args, axis_text, sizeof(axis_text), &value))
+    {
+        return false;
+    }
+
+    if (std::strcmp(axis_text, "yaw") == 0)
+    {
+        if (set_bias)
+        {
+            params.yaw_hold_ff = value;
+        }
+        else
+        {
+            params.yaw_k_vel_ff = value;
+        }
+    }
+    else if (std::strcmp(axis_text, "pitch") == 0)
+    {
+        if (set_bias)
+        {
+            params.pitch_hold_ff = value;
+        }
+        else
+        {
+            params.pitch_k_vel_ff = value;
+        }
+    }
+    else
+    {
+        return false;
+    }
+
+    rtt_task_motor_manage().set_runtime_params(params);
+    (void)std::snprintf(value_text, sizeof(value_text), "%.6f", value);
+    SEGGER_RTT_printf(k_rtt_buffer_index,
+                      "#ACK ff %s axis=%s value=%s\n",
+                      set_bias ? "set_bias" : "set_kv",
+                      axis_text,
+                      value_text);
+    return true;
+}
+
 void rtt_task_write_string(const char *text)
 {
     if (text == nullptr)
@@ -457,11 +587,41 @@ void rtt_task_handle_command(char *line, uint32_t now_tick_ms)
     }
 
     if ((std::strcmp(begin, "ff trap start") == 0) ||
-        (std::strcmp(begin, "ff sine start") == 0) ||
-        (std::strncmp(begin, "ff set_kv ", 10U) == 0) ||
-        (std::strncmp(begin, "ff set_bias ", 12U) == 0))
+        (std::strcmp(begin, "ff sine start") == 0))
     {
         SEGGER_RTT_printf(k_rtt_buffer_index, "#ERR unsupported command=%s\n", begin);
+        return;
+    }
+
+    if ((std::strncmp(begin, "ff set_kv", 9U) == 0) &&
+        ((begin[9] == '\0') || std::isspace((unsigned char)begin[9])))
+    {
+        const char *arg_text = begin + 9U;
+        while ((*arg_text != '\0') && std::isspace((unsigned char)*arg_text))
+        {
+            ++arg_text;
+        }
+
+        if (!rtt_task_apply_ff_update(arg_text, false))
+        {
+            SEGGER_RTT_printf(k_rtt_buffer_index, "#ERR invalid ff set_kv args=%s\n", begin);
+        }
+        return;
+    }
+
+    if ((std::strncmp(begin, "ff set_bias", 11U) == 0) &&
+        ((begin[11] == '\0') || std::isspace((unsigned char)begin[11])))
+    {
+        const char *arg_text = begin + 11U;
+        while ((*arg_text != '\0') && std::isspace((unsigned char)*arg_text))
+        {
+            ++arg_text;
+        }
+
+        if (!rtt_task_apply_ff_update(arg_text, true))
+        {
+            SEGGER_RTT_printf(k_rtt_buffer_index, "#ERR invalid ff set_bias args=%s\n", begin);
+        }
         return;
     }
 
