@@ -20,6 +20,7 @@
 #define USB_ABS_YAW_MAX_DEG 60.0f
 #define USB_ABS_PITCH_MIN_DEG (-10.0f)
 #define USB_ABS_PITCH_MAX_DEG 40.0f
+#define USB_ABS_YAW_RATE_MAX_DPS 2000.0f
 
 typedef struct
 {
@@ -256,6 +257,7 @@ static bool usb_decode_ctrl_msg(uint8_t cmd, const uint8_t *payload, uint8_t pay
     msg->time_stamp = 0U;
     msg->yaw_target = 0.0f;
     msg->pitch_target = 0.0f;
+    msg->yaw_rate_dps = 0.0f;
 
     switch (cmd)
     {
@@ -288,6 +290,16 @@ static bool usb_decode_ctrl_msg(uint8_t cmd, const uint8_t *payload, uint8_t pay
             msg->yaw_target = (float)(int16_t)usb_read_u16_le(&payload[0]) / 100.0f;
             msg->pitch_target = (float)(int16_t)usb_read_u16_le(&payload[2]) / 100.0f;
             msg->time_stamp = usb_read_u32_le(&payload[4]);
+            msg->yaw_rate_dps = (float)(int16_t)usb_read_u16_le(&payload[8]);
+
+            if (msg->yaw_rate_dps > USB_ABS_YAW_RATE_MAX_DPS)
+            {
+                msg->yaw_rate_dps = USB_ABS_YAW_RATE_MAX_DPS;
+            }
+            else if (msg->yaw_rate_dps < -USB_ABS_YAW_RATE_MAX_DPS)
+            {
+                msg->yaw_rate_dps = -USB_ABS_YAW_RATE_MAX_DPS;
+            }
 
             if ((msg->yaw_target < USB_ABS_YAW_MIN_DEG) ||
                 (msg->yaw_target > USB_ABS_YAW_MAX_DEG) ||

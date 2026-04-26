@@ -10,7 +10,22 @@
 #include "PID.h"
 #include "device_gm6020.h"
 
-#define  DDBUG_DATA_ON
+#define DDBUG_DATA_ON
+
+typedef enum
+{
+    MOTOR_AIM_MODE_NONE = 0,
+    MOTOR_AIM_MODE_LARGE_MOVE,
+    MOTOR_AIM_MODE_SMALL_TRACK,
+    MOTOR_AIM_MODE_SPIN_TRACK,
+    MOTOR_AIM_MODE_TRACK_LOST
+} MotorManageAimMode_e;
+
+typedef enum
+{
+    MOTOR_REFERENCE_MODE_DIRECT = 0,
+    MOTOR_REFERENCE_MODE_PLANNER
+} MotorReferenceMode_e;
 
 typedef struct
 {
@@ -37,23 +52,58 @@ typedef struct
     float pitch_k_vel_ff;
 } MotorManageRuntimeParams;
 
+typedef struct
+{
+    float pos_ref_deg;
+    float vel_ref_dps;
+    float acc_ref_dps2;
+    MotorReferenceMode_e reference_mode;
+} MotorAxisReference;
+
+typedef struct
+{
+    MotorManageAimMode_e aim_mode;
+    MotorAxisReference yaw;
+    MotorAxisReference pitch;
+} MotorControlReference;
+
 extern volatile MotorManageRuntimeParams g_motor_manage_runtime_params;
 
 #ifdef DDBUG_DATA_ON
 typedef struct
 {
+    float target_deg;
+    float ref_deg;
+    float speed_target_dps;
+    float ref_speed_dps;
+    float ref_acc_dps2;
+    float current_pid;
+    float current_ff;
+    float hold_ff;
+    float boot_bias_ff;
+    float vel_ff;
+    float acc_ff;
+    float ff_total;
+    int16_t current_cmd;
+    float meas_deg;
+    float meas_speed_dps;
+    int16_t current_meas;
+} MotorManageDebugAxisData;
+
+typedef struct
+{
+    MotorManageDebugAxisData yaw;
+    MotorManageDebugAxisData pitch;
     float yaw_angle_t;
     float pitch_angle_t;
     float yaw_planned_angle_t;
     float pitch_planned_angle_t;
-
     float yaw_speed_t;
     float pitch_speed_t;
     float yaw_planned_speed_t;
     float pitch_planned_speed_t;
     float yaw_planned_acc_t;
     float pitch_planned_acc_t;
-
     float yaw_current_pid;
     float pitch_current_pid;
     float yaw_current_ff;
@@ -70,14 +120,12 @@ typedef struct
     float pitch_ff_total;
     int16_t yaw_current_cmd;
     int16_t pitch_current_cmd;
-
     float yaw_angle_meas_deg;
     float pitch_angle_meas_deg;
     float yaw_speed_meas_dps;
     float pitch_speed_meas_dps;
     int16_t yaw_current_meas;
     int16_t pitch_current_meas;
-
     float dt_s;
     uint32_t tick_ms;
 } MotorManageDebugData;
@@ -95,6 +143,9 @@ public:
     void sync_runtime_params_from_global();
     void set_runtime_params(const MotorManageRuntimeParams &params);
     MotorManageRuntimeParams get_runtime_params() const;
+    void set_control_reference(const MotorControlReference &reference,
+                               float yaw_meas_deg,
+                               float pitch_meas_deg);
     void set_world_target(float yaw_target_deg,
                           float pitch_target_deg,
                           float yaw_meas_deg,
@@ -144,6 +195,7 @@ private:
     static void copy_runtime_params(MotorManageRuntimeParams *dst, const volatile MotorManageRuntimeParams &src);
     static void copy_runtime_params(volatile MotorManageRuntimeParams *dst, const MotorManageRuntimeParams &src);
     void apply_runtime_params(const MotorManageRuntimeParams &params);
+    void apply_mode_tuning(MotorManageAimMode_e aim_mode);
     static float clamp_target_deg(float value, float min_value, float max_value);
     float yaw_motor_to_joint_deg(float motor_angle_deg) const;
     static float pitch_motor_to_joint_deg(float motor_angle_deg);

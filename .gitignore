@@ -7,3 +7,5 @@ openocd-*.log
 .zip
 *.zip
 *.tar.gz
+*.csv
+session.json

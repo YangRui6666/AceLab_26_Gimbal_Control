@@ -457,8 +457,9 @@ typedef enum {
 typedef struct {
     CtrlMsgType_e type;
     uint32_t time_stamp;
-    float delta_yaw;
-    float delta_pitch;
+    float yaw_target;
+    float pitch_target;
+    float yaw_rate_dps;
 } CtrlMsg_t;
 ```
 
@@ -509,12 +510,12 @@ pitch_world_target = pitch_center + A_pitch * sin(2 * w * t + phi);
 
 ### 9.3 `AUTO_AIM`
 
-- 从消息队列读取 `delta_yaw / delta_pitch`
-- 以增量方式修正对地目标
+- 从消息队列读取绝对目标和 yaw 角速度
+- 以绝对角目标修正对地目标，并用 yaw 角速度做延迟补偿
 
 ```c
-yaw_world_target   += delta_yaw;
-pitch_world_target += delta_pitch;
+yaw_world_target   = yaw_target;
+pitch_world_target = pitch_target;
 ```
 
 ### 9.4 对地目标到关节目标

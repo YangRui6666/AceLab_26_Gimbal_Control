@@ -23,6 +23,7 @@ typedef struct
     uint32_t time_stamp;
     float yaw_target;
     float pitch_target;
+    float yaw_rate_dps;
 } CtrlMsg_t;
 
 bool ctrl_msg_queue_init(void);

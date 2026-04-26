@@ -86,10 +86,11 @@ USB 数据帧采用固定格式：
   - `int16_t yaw_x100`
   - `int16_t pitch_x100`
   - `uint32_t time_stamp`
-  - `uint8_t reserved[2]`
-- 作用：以“增量误差”方式修正目标，而不是直接下发绝对角度
+  - `int16_t yaw_rate_dps`
+- 作用：以上位机估计的绝对目标和 yaw 角速度共同描述当前自瞄目标
 - 说明：
-  - `delta_yaw_x100` 和 `delta_pitch_x100` 均以 `0.01deg` 为单位
+  - `yaw_x100` 和 `pitch_x100` 均以 `0.01deg` 为单位
+  - `yaw_rate_dps` 以 `deg/s` 为单位，用于延迟补偿和 spin 判定
   - yaw、pitch 的方向定义需要与上位机约定一致
 
 #### `0x87` 进入锁定保护
