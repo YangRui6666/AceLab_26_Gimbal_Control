@@ -492,7 +492,7 @@ bool usb_protocol_send_status(const usb_status_feedback_t *status)
     }
 
     usb_write_u16_le(&payload[0], (uint16_t)status->yaw_target);
-    usb_write_u16_le(&payload[2], (uint16_t)status->pitch_target);
+    usb_write_u16_le(&payload[2], -(uint16_t)status->pitch_target);
     usb_write_u16_le(&payload[4], (uint16_t)status->roll_target);
     usb_write_u32_le(&payload[6], status->time_stamp);
     payload[10] = status->mode;

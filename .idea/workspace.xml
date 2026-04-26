@@ -36,13 +36,11 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="增加RTT系统辨识采样lut">
+    <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="把视觉输入改成绝对角度">
+      <change beforePath="$PROJECT_DIR$/.idea/debugServers/ST_LINK.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/debugServers/ST_LINK.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Bsp/Src/bsp_usb.c" beforeDir="false" afterPath="$PROJECT_DIR$/User/Bsp/Src/bsp_usb.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Task/ctrl_msg_queue.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/ctrl_msg_queue.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Task/debug_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/debug_task.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Task/state.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/state.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,7 +51,7 @@
     <option name="formatViaClangd" value="false" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="5182" />
+    <option name="cachedIndexableFilesCount" value="5183" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug - Debug" />
@@ -207,7 +205,9 @@
       <workItem from="1776993735741" duration="3946000" />
       <workItem from="1777044673761" duration="755000" />
       <workItem from="1777082014275" duration="22740000" />
-      <workItem from="1777125384951" duration="5654000" />
+      <workItem from="1777125384951" duration="6416000" />
+      <workItem from="1777168195895" duration="1580000" />
+      <workItem from="1777170151159" duration="1464000" />
     </task>
     <task id="LOCAL-00001" summary="搭建起来一个自己的框架">
       <option name="closed" value="true" />
@@ -249,7 +249,15 @@
       <option name="project" value="LOCAL" />
       <updated>1777122543851</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="把视觉输入改成绝对角度">
+      <option name="closed" value="true" />
+      <created>1777139860855</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1777139860855</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -277,6 +285,7 @@
     <MESSAGE value="提交了一个不太可靠的更改，没有实际验证，非常不可信" />
     <MESSAGE value="修改调试器为daplink，以及重新把视觉发送的数据调整为赋值运动" />
     <MESSAGE value="增加RTT系统辨识采样lut" />
-    <option name="LAST_COMMIT_MESSAGE" value="增加RTT系统辨识采样lut" />
+    <MESSAGE value="把视觉输入改成绝对角度" />
+    <option name="LAST_COMMIT_MESSAGE" value="把视觉输入改成绝对角度" />
   </component>
 </project>
