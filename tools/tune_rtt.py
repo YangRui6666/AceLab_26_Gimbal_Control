@@ -37,10 +37,12 @@ SAMPLE_HEADER = [
     "pitch_meas_speed_dps",
     "yaw_current_pid",
     "yaw_current_ff",
+    "yaw_cable_ff",
     "yaw_current_cmd",
     "yaw_current_meas",
     "pitch_current_pid",
     "pitch_current_ff",
+    "pitch_cable_ff",
     "pitch_current_cmd",
     "pitch_current_meas",
 ]
@@ -230,7 +232,7 @@ def preset_commands(name: str, config: RunConfig) -> Tuple[List[str], float]:
     hold_ms = config.hold_ms
 
     if name == "speed-yaw":
-        return [f"tune speed_step axis=yaw amp={amp if amp is not None else 40} hold_ms={hold_ms or 1500} other=0"], config.duration_s
+        return [f"tune speed_step axis=yaw amp={amp if amp is not None else 40} hold_ms={hold_ms or 1500} other=10"], config.duration_s
     if name == "speed-pitch":
         return [f"tune speed_step axis=pitch amp={amp if amp is not None else 30} hold_ms={hold_ms or 1500} other=0"], config.duration_s
     if name == "angle-yaw":

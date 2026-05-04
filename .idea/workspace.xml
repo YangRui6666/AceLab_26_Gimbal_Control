@@ -38,12 +38,11 @@
   <component name="ChangeListManager">
     <list default="true" id="e6574d7a-c038-45ec-a42a-ff106221870d" name="更改" comment="不知道改了什么">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core/Src/main.c" beforeDir="false" afterPath="$PROJECT_DIR$/Core/Src/main.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Library/SEGGER_RTT_Conf.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Library/SEGGER_RTT_Conf.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/ctrl_task.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Task/rtt_task.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/rtt_task.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/User/Task/debug_tune.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/debug_tune.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tools/tune_rtt.py" beforeDir="false" afterPath="$PROJECT_DIR$/tools/tune_rtt.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/云台手册.md" beforeDir="false" afterPath="$PROJECT_DIR$/云台手册.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -120,9 +119,9 @@
     </key>
   </component>
   <component name="RunManager" selected="CMake 应用程序.Gimbal_um">
-    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
       </method>
     </configuration>
     <configuration name="FreeRTOS" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Gimbal_um" TARGET_NAME="FreeRTOS" CONFIG_NAME="Debug - Debug">

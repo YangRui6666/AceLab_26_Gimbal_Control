@@ -199,6 +199,12 @@ MotorManageRuntimeParams copy_params_from_global(void)
     params.yaw_max_acc_dps2 = g_motor_manage_runtime_params.yaw_max_acc_dps2;
     params.yaw_k_vel_ff = g_motor_manage_runtime_params.yaw_k_vel_ff;
     params.yaw_hold_ff = g_motor_manage_runtime_params.yaw_hold_ff;
+    params.yaw_cable_ff_enable = g_motor_manage_runtime_params.yaw_cable_ff_enable;
+    params.yaw_cable_ff_offset = g_motor_manage_runtime_params.yaw_cable_ff_offset;
+    params.yaw_cable_ff_k_yaw = g_motor_manage_runtime_params.yaw_cable_ff_k_yaw;
+    params.yaw_cable_ff_k_pitch = g_motor_manage_runtime_params.yaw_cable_ff_k_pitch;
+    params.yaw_cable_ff_pitch_ref_deg = g_motor_manage_runtime_params.yaw_cable_ff_pitch_ref_deg;
+    params.yaw_cable_ff_limit = g_motor_manage_runtime_params.yaw_cable_ff_limit;
     params.pitch_max_vel_dps = g_motor_manage_runtime_params.pitch_max_vel_dps;
     params.pitch_max_acc_dps2 = g_motor_manage_runtime_params.pitch_max_acc_dps2;
     params.pitch_k_vel_ff = g_motor_manage_runtime_params.pitch_k_vel_ff;
@@ -225,6 +231,12 @@ void copy_params_to_global(const MotorManageRuntimeParams &params)
     g_motor_manage_runtime_params.yaw_max_acc_dps2 = params.yaw_max_acc_dps2;
     g_motor_manage_runtime_params.yaw_k_vel_ff = params.yaw_k_vel_ff;
     g_motor_manage_runtime_params.yaw_hold_ff = params.yaw_hold_ff;
+    g_motor_manage_runtime_params.yaw_cable_ff_enable = params.yaw_cable_ff_enable;
+    g_motor_manage_runtime_params.yaw_cable_ff_offset = params.yaw_cable_ff_offset;
+    g_motor_manage_runtime_params.yaw_cable_ff_k_yaw = params.yaw_cable_ff_k_yaw;
+    g_motor_manage_runtime_params.yaw_cable_ff_k_pitch = params.yaw_cable_ff_k_pitch;
+    g_motor_manage_runtime_params.yaw_cable_ff_pitch_ref_deg = params.yaw_cable_ff_pitch_ref_deg;
+    g_motor_manage_runtime_params.yaw_cable_ff_limit = params.yaw_cable_ff_limit;
     g_motor_manage_runtime_params.pitch_max_vel_dps = params.pitch_max_vel_dps;
     g_motor_manage_runtime_params.pitch_max_acc_dps2 = params.pitch_max_acc_dps2;
     g_motor_manage_runtime_params.pitch_k_vel_ff = params.pitch_k_vel_ff;
@@ -254,6 +266,12 @@ float *find_param(MotorManageRuntimeParams *params, const char *name)
     if (strcmp(name, "yaw_max_acc_dps2") == 0) { return &params->yaw_max_acc_dps2; }
     if (strcmp(name, "yaw_k_vel_ff") == 0) { return &params->yaw_k_vel_ff; }
     if (strcmp(name, "yaw_hold_ff") == 0) { return &params->yaw_hold_ff; }
+    if (strcmp(name, "yaw_cable_ff_enable") == 0) { return &params->yaw_cable_ff_enable; }
+    if (strcmp(name, "yaw_cable_ff_offset") == 0) { return &params->yaw_cable_ff_offset; }
+    if (strcmp(name, "yaw_cable_ff_k_yaw") == 0) { return &params->yaw_cable_ff_k_yaw; }
+    if (strcmp(name, "yaw_cable_ff_k_pitch") == 0) { return &params->yaw_cable_ff_k_pitch; }
+    if (strcmp(name, "yaw_cable_ff_pitch_ref_deg") == 0) { return &params->yaw_cable_ff_pitch_ref_deg; }
+    if (strcmp(name, "yaw_cable_ff_limit") == 0) { return &params->yaw_cable_ff_limit; }
     if (strcmp(name, "pitch_max_vel_dps") == 0) { return &params->pitch_max_vel_dps; }
     if (strcmp(name, "pitch_max_acc_dps2") == 0) { return &params->pitch_max_acc_dps2; }
     if (strcmp(name, "pitch_k_vel_ff") == 0) { return &params->pitch_k_vel_ff; }
@@ -638,6 +656,12 @@ void debug_tune_print_params(void)
     print_param_line("yaw_max_acc_dps2", params.yaw_max_acc_dps2);
     print_param_line("yaw_k_vel_ff", params.yaw_k_vel_ff);
     print_param_line("yaw_hold_ff", params.yaw_hold_ff);
+    print_param_line("yaw_cable_ff_enable", params.yaw_cable_ff_enable);
+    print_param_line("yaw_cable_ff_offset", params.yaw_cable_ff_offset);
+    print_param_line("yaw_cable_ff_k_yaw", params.yaw_cable_ff_k_yaw);
+    print_param_line("yaw_cable_ff_k_pitch", params.yaw_cable_ff_k_pitch);
+    print_param_line("yaw_cable_ff_pitch_ref_deg", params.yaw_cable_ff_pitch_ref_deg);
+    print_param_line("yaw_cable_ff_limit", params.yaw_cable_ff_limit);
     print_param_line("pitch_max_vel_dps", params.pitch_max_vel_dps);
     print_param_line("pitch_max_acc_dps2", params.pitch_max_acc_dps2);
     print_param_line("pitch_k_vel_ff", params.pitch_k_vel_ff);
@@ -671,8 +695,8 @@ void debug_tune_emit_sample_if_due(uint32_t now_tick_ms)
                                "kind,tick_ms,mode,axis,target_yaw_deg,ref_yaw_deg,meas_yaw_deg,"
                                "target_pitch_deg,ref_pitch_deg,meas_pitch_deg,yaw_speed_target_dps,"
                                "yaw_meas_speed_dps,pitch_speed_target_dps,pitch_meas_speed_dps,"
-                               "yaw_current_pid,yaw_current_ff,yaw_current_cmd,yaw_current_meas,"
-                               "pitch_current_pid,pitch_current_ff,pitch_current_cmd,pitch_current_meas\n");
+                               "yaw_current_pid,yaw_current_ff,yaw_cable_ff,yaw_current_cmd,yaw_current_meas,"
+                               "pitch_current_pid,pitch_current_ff,pitch_cable_ff,pitch_current_cmd,pitch_current_meas\n");
         s_sample_header_sent = true;
     }
 
@@ -689,8 +713,10 @@ void debug_tune_emit_sample_if_due(uint32_t now_tick_ms)
     char pitch_meas_speed_text[24] = {0};
     char yaw_current_pid_text[24] = {0};
     char yaw_current_ff_text[24] = {0};
+    char yaw_cable_ff_text[24] = {0};
     char pitch_current_pid_text[24] = {0};
     char pitch_current_ff_text[24] = {0};
+    char pitch_cable_ff_text[24] = {0};
 
     format_fixed(target_yaw_text, sizeof(target_yaw_text), debug->yaw.target_deg, 6U);
     format_fixed(ref_yaw_text, sizeof(ref_yaw_text), debug->yaw.ref_deg, 6U);
@@ -704,11 +730,13 @@ void debug_tune_emit_sample_if_due(uint32_t now_tick_ms)
     format_fixed(pitch_meas_speed_text, sizeof(pitch_meas_speed_text), debug->pitch.meas_speed_dps, 6U);
     format_fixed(yaw_current_pid_text, sizeof(yaw_current_pid_text), debug->yaw.current_pid, 6U);
     format_fixed(yaw_current_ff_text, sizeof(yaw_current_ff_text), debug->yaw.current_ff, 6U);
+    format_fixed(yaw_cable_ff_text, sizeof(yaw_cable_ff_text), debug->yaw.cable_ff, 6U);
     format_fixed(pitch_current_pid_text, sizeof(pitch_current_pid_text), debug->pitch.current_pid, 6U);
     format_fixed(pitch_current_ff_text, sizeof(pitch_current_ff_text), debug->pitch.current_ff, 6U);
+    format_fixed(pitch_cable_ff_text, sizeof(pitch_cable_ff_text), debug->pitch.cable_ff, 6U);
 
     SEGGER_RTT_printf(k_rtt_buffer_index,
-                      "sample,%lu,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%d,%d,%s,%s,%d,%d\n",
+                      "sample,%lu,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%d,%d,%s,%s,%s,%d,%d\n",
                       (unsigned long)now_tick_ms,
                       debug_tune_mode_name(s_tune.mode),
                       debug_tune_axis_name(s_tune.axis),
@@ -724,10 +752,12 @@ void debug_tune_emit_sample_if_due(uint32_t now_tick_ms)
                       pitch_meas_speed_text,
                       yaw_current_pid_text,
                       yaw_current_ff_text,
+                      yaw_cable_ff_text,
                       (int)debug->yaw.current_cmd,
                       (int)debug->yaw.current_meas,
                       pitch_current_pid_text,
                       pitch_current_ff_text,
+                      pitch_cable_ff_text,
                       (int)debug->pitch.current_cmd,
                       (int)debug->pitch.current_meas);
     s_last_sample_tick_ms = now_tick_ms;

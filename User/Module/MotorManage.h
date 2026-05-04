@@ -47,6 +47,12 @@ typedef struct
     float yaw_max_acc_dps2;
     float yaw_k_vel_ff;
     float yaw_hold_ff;
+    float yaw_cable_ff_enable;
+    float yaw_cable_ff_offset;
+    float yaw_cable_ff_k_yaw;
+    float yaw_cable_ff_k_pitch;
+    float yaw_cable_ff_pitch_ref_deg;
+    float yaw_cable_ff_limit;
 
     float pitch_max_vel_dps;
     float pitch_max_acc_dps2;
@@ -82,6 +88,7 @@ typedef struct
     float current_pid;
     float current_ff;
     float hold_ff;
+    float cable_ff;
     float boot_bias_ff;
     float vel_ff;
     float acc_ff;
@@ -112,6 +119,8 @@ typedef struct
     float pitch_current_ff;
     float yaw_hold_ff;
     float pitch_hold_ff;
+    float yaw_cable_ff;
+    float pitch_cable_ff;
     float yaw_boot_bias_ff;
     float pitch_boot_bias_ff;
     float yaw_vel_ff;
@@ -180,6 +189,7 @@ private:
     struct FeedforwardAxisState
     {
         float hold_ff;
+        float cable_ff;
         float boot_bias_ff;
         float vel_ff;
         float acc_ff;

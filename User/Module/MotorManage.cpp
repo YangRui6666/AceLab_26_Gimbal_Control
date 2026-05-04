@@ -69,6 +69,43 @@ float signf(float value)
     return 0.0f;
 }
 
+float clamp_abs_limit(float value, float limit)
+{
+    if (limit <= 0.0f)
+    {
+        return value;
+    }
+
+    if (value > limit)
+    {
+        return limit;
+    }
+
+    if (value < -limit)
+    {
+        return -limit;
+    }
+
+    return value;
+}
+
+float compute_yaw_cable_ff(const MotorManageRuntimeParams &params,
+                           float yaw_deg,
+                           float pitch_deg)
+{
+    if (params.yaw_cable_ff_enable <= 0.5f)
+    {
+        return 0.0f;
+    }
+
+    const float pitch_delta_deg = pitch_deg - params.yaw_cable_ff_pitch_ref_deg;
+    const float cable_ff = params.yaw_cable_ff_offset +
+                           params.yaw_cable_ff_k_yaw * yaw_deg +
+                           params.yaw_cable_ff_k_pitch * pitch_delta_deg;
+
+    return clamp_abs_limit(cable_ff, params.yaw_cable_ff_limit);
+}
+
 int16_t clamp_current_cmd(float value, int16_t limit)
 {
     if (value > (float)limit)
@@ -177,6 +214,7 @@ volatile MotorManageRuntimeParams g_motor_manage_runtime_params = {
     18.0f, 4.0f, 0.0f,
     15.0f, 3.0f, 0.0f,
     180.0f, 720.0f, 50.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 0.0f, 10.0f, 0.0f,
     120.0f, 480.0f, 0.08f, 0.0f
 };
 
@@ -255,6 +293,12 @@ void MotorManage::copy_runtime_params(MotorManageRuntimeParams *dst, const Motor
     dst->yaw_max_acc_dps2 = src.yaw_max_acc_dps2;
     dst->yaw_k_vel_ff = src.yaw_k_vel_ff;
     dst->yaw_hold_ff = src.yaw_hold_ff;
+    dst->yaw_cable_ff_enable = src.yaw_cable_ff_enable;
+    dst->yaw_cable_ff_offset = src.yaw_cable_ff_offset;
+    dst->yaw_cable_ff_k_yaw = src.yaw_cable_ff_k_yaw;
+    dst->yaw_cable_ff_k_pitch = src.yaw_cable_ff_k_pitch;
+    dst->yaw_cable_ff_pitch_ref_deg = src.yaw_cable_ff_pitch_ref_deg;
+    dst->yaw_cable_ff_limit = src.yaw_cable_ff_limit;
     dst->pitch_max_vel_dps = src.pitch_max_vel_dps;
     dst->pitch_max_acc_dps2 = src.pitch_max_acc_dps2;
     dst->pitch_k_vel_ff = src.pitch_k_vel_ff;
@@ -284,6 +328,12 @@ void MotorManage::copy_runtime_params(MotorManageRuntimeParams *dst, const volat
     dst->yaw_max_acc_dps2 = src.yaw_max_acc_dps2;
     dst->yaw_k_vel_ff = src.yaw_k_vel_ff;
     dst->yaw_hold_ff = src.yaw_hold_ff;
+    dst->yaw_cable_ff_enable = src.yaw_cable_ff_enable;
+    dst->yaw_cable_ff_offset = src.yaw_cable_ff_offset;
+    dst->yaw_cable_ff_k_yaw = src.yaw_cable_ff_k_yaw;
+    dst->yaw_cable_ff_k_pitch = src.yaw_cable_ff_k_pitch;
+    dst->yaw_cable_ff_pitch_ref_deg = src.yaw_cable_ff_pitch_ref_deg;
+    dst->yaw_cable_ff_limit = src.yaw_cable_ff_limit;
     dst->pitch_max_vel_dps = src.pitch_max_vel_dps;
     dst->pitch_max_acc_dps2 = src.pitch_max_acc_dps2;
     dst->pitch_k_vel_ff = src.pitch_k_vel_ff;
@@ -313,6 +363,12 @@ void MotorManage::copy_runtime_params(volatile MotorManageRuntimeParams *dst, co
     dst->yaw_max_acc_dps2 = src.yaw_max_acc_dps2;
     dst->yaw_k_vel_ff = src.yaw_k_vel_ff;
     dst->yaw_hold_ff = src.yaw_hold_ff;
+    dst->yaw_cable_ff_enable = src.yaw_cable_ff_enable;
+    dst->yaw_cable_ff_offset = src.yaw_cable_ff_offset;
+    dst->yaw_cable_ff_k_yaw = src.yaw_cable_ff_k_yaw;
+    dst->yaw_cable_ff_k_pitch = src.yaw_cable_ff_k_pitch;
+    dst->yaw_cable_ff_pitch_ref_deg = src.yaw_cable_ff_pitch_ref_deg;
+    dst->yaw_cable_ff_limit = src.yaw_cable_ff_limit;
     dst->pitch_max_vel_dps = src.pitch_max_vel_dps;
     dst->pitch_max_acc_dps2 = src.pitch_max_acc_dps2;
     dst->pitch_k_vel_ff = src.pitch_k_vel_ff;
@@ -421,6 +477,7 @@ void MotorManage::clear_feedforward_state(FeedforwardAxisState *ff_state)
     }
 
     ff_state->hold_ff = 0.0f;
+    ff_state->cable_ff = 0.0f;
     ff_state->boot_bias_ff = 0.0f;
     ff_state->vel_ff = 0.0f;
     ff_state->acc_ff = 0.0f;
@@ -651,9 +708,11 @@ void MotorManage::set_control_reference(const MotorControlReference &reference,
         const float yaw_current_pid = yaw_pid_speed_.calculate(yaw_speed_target, yaw_state.speed_dps, inner_dt_s);
         clear_feedforward_state(&yaw_ff_state_);
         yaw_ff_state_.hold_ff = runtime_params_.yaw_hold_ff;
+        yaw_ff_state_.cable_ff = compute_yaw_cable_ff(runtime_params_, yaw_exec_pos, pitch_exec_pos);
         yaw_ff_state_.vel_ff =
             (runtime_params_.yaw_k_vel_ff * get_yaw_ff_gain_scale(reference.aim_mode)) * yaw_exec_vel;
         yaw_ff_state_.ff_total = yaw_ff_state_.hold_ff +
+                                 yaw_ff_state_.cable_ff +
                                  yaw_ff_state_.boot_bias_ff +
                                  yaw_ff_state_.vel_ff +
                                  yaw_ff_state_.acc_ff;
@@ -719,6 +778,7 @@ void MotorManage::set_control_reference(const MotorControlReference &reference,
         pitch_ff_state_.hold_ff = runtime_params_.pitch_hold_ff;
         pitch_ff_state_.vel_ff = runtime_params_.pitch_k_vel_ff * (-pitch_exec_vel);
         pitch_ff_state_.ff_total = pitch_ff_state_.hold_ff +
+                                   pitch_ff_state_.cable_ff +
                                    pitch_ff_state_.boot_bias_ff +
                                    pitch_ff_state_.vel_ff +
                                    pitch_ff_state_.acc_ff;
@@ -745,6 +805,8 @@ void MotorManage::set_control_reference(const MotorControlReference &reference,
     g_motor_manage_debug.pitch.current_ff = pitch_ff_state_.ff_total;
     g_motor_manage_debug.yaw.hold_ff = yaw_ff_state_.hold_ff;
     g_motor_manage_debug.pitch.hold_ff = pitch_ff_state_.hold_ff;
+    g_motor_manage_debug.yaw.cable_ff = yaw_ff_state_.cable_ff;
+    g_motor_manage_debug.pitch.cable_ff = pitch_ff_state_.cable_ff;
     g_motor_manage_debug.yaw.boot_bias_ff = yaw_ff_state_.boot_bias_ff;
     g_motor_manage_debug.pitch.boot_bias_ff = pitch_ff_state_.boot_bias_ff;
     g_motor_manage_debug.yaw.vel_ff = yaw_ff_state_.vel_ff;
@@ -777,6 +839,8 @@ void MotorManage::set_control_reference(const MotorControlReference &reference,
     g_motor_manage_debug.pitch_current_ff = pitch_ff_state_.ff_total;
     g_motor_manage_debug.yaw_hold_ff = yaw_ff_state_.hold_ff;
     g_motor_manage_debug.pitch_hold_ff = pitch_ff_state_.hold_ff;
+    g_motor_manage_debug.yaw_cable_ff = yaw_ff_state_.cable_ff;
+    g_motor_manage_debug.pitch_cable_ff = pitch_ff_state_.cable_ff;
     g_motor_manage_debug.yaw_boot_bias_ff = yaw_ff_state_.boot_bias_ff;
     g_motor_manage_debug.pitch_boot_bias_ff = pitch_ff_state_.boot_bias_ff;
     g_motor_manage_debug.yaw_vel_ff = yaw_ff_state_.vel_ff;

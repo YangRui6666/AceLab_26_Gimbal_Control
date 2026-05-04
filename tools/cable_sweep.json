@@ -1,0 +1,21 @@
+{
+  "commands": [
+    "tune hold yaw=0 pitch=10 planner=1",
+    "tune hold yaw=-10 pitch=10 planner=1",
+    "tune hold yaw=-20 pitch=10 planner=1",
+    "tune hold yaw=-30 pitch=10 planner=1",
+    "tune hold yaw=-40 pitch=10 planner=1",
+    "tune hold yaw=-45 pitch=10 planner=1",
+    "tune hold yaw=-40 pitch=10 planner=1",
+    "tune hold yaw=-30 pitch=10 planner=1",
+    "tune hold yaw=-20 pitch=10 planner=1",
+    "tune hold yaw=-10 pitch=10 planner=1",
+    "tune hold yaw=0 pitch=10 planner=1",
+    "tune hold yaw=10 pitch=10 planner=1",
+    "tune hold yaw=20 pitch=10 planner=1",
+    "tune hold yaw=30 pitch=10 planner=1",
+    "tune hold yaw=40 pitch=10 planner=1",
+    "tune hold yaw=45 pitch=10 planner=1"
+  ],
+  "duration_s": 55.0
+}
