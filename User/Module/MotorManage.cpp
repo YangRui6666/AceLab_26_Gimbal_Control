@@ -22,7 +22,7 @@ constexpr uint8_t k_outer_loop_divider = static_cast<uint8_t>(k_inner_loop_hz / 
 constexpr float k_inner_dt_default_s = 1.0f / (float)k_inner_loop_hz;
 constexpr float k_outer_dt_default_s = 1.0f / (float)k_outer_loop_hz;
 constexpr float k_tick_to_s = 0.001f;
-constexpr int16_t k_current_cmd_limit = 10000;
+constexpr int16_t k_current_cmd_limit = 15000;
 constexpr float k_yaw_limit_min_deg = -60.0f;
 constexpr float k_yaw_limit_max_deg = 60.0f;
 constexpr float k_yaw_limit_margin_deg = 1.0f;
@@ -209,11 +209,11 @@ volatile MotorManageDebugData g_motor_manage_debug = {0};
 #endif
 
 volatile MotorManageRuntimeParams g_motor_manage_runtime_params = {
-    18.0f, 0.0f, 0.0f,
+    38.0f, 0.0f, 0.0f,
     30.0f, 5.0f, 0.0f,
     18.0f, 4.0f, 0.0f,
     15.0f, 3.0f, 0.0f,
-    180.0f, 720.0f, 50.0f, 0.0f,
+    180.0f, 720.0f, 35.0f, 0.0f,
     0.0f, 0.0f, 0.0f, 0.0f, 10.0f, 0.0f,
     120.0f, 480.0f, 0.08f, 0.0f
 };
