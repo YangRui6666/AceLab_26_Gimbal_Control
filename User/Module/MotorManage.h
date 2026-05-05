@@ -58,6 +58,8 @@ typedef struct
     float pitch_max_acc_dps2;
     float pitch_k_vel_ff;
     float pitch_hold_ff;
+    float pitch_gravity_sin;
+    float pitch_gravity_cos;
 } MotorManageRuntimeParams;
 
 typedef struct
@@ -89,6 +91,7 @@ typedef struct
     float current_ff;
     float hold_ff;
     float cable_ff;
+    float gravity_ff;
     float boot_bias_ff;
     float vel_ff;
     float acc_ff;
@@ -121,6 +124,8 @@ typedef struct
     float pitch_hold_ff;
     float yaw_cable_ff;
     float pitch_cable_ff;
+    float yaw_gravity_ff;
+    float pitch_gravity_ff;
     float yaw_boot_bias_ff;
     float pitch_boot_bias_ff;
     float yaw_vel_ff;
@@ -190,6 +195,7 @@ private:
     {
         float hold_ff;
         float cable_ff;
+        float gravity_ff;
         float boot_bias_ff;
         float vel_ff;
         float acc_ff;

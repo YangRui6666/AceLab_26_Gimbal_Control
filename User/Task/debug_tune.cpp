@@ -209,6 +209,8 @@ MotorManageRuntimeParams copy_params_from_global(void)
     params.pitch_max_acc_dps2 = g_motor_manage_runtime_params.pitch_max_acc_dps2;
     params.pitch_k_vel_ff = g_motor_manage_runtime_params.pitch_k_vel_ff;
     params.pitch_hold_ff = g_motor_manage_runtime_params.pitch_hold_ff;
+    params.pitch_gravity_sin = g_motor_manage_runtime_params.pitch_gravity_sin;
+    params.pitch_gravity_cos = g_motor_manage_runtime_params.pitch_gravity_cos;
 
     return params;
 }
@@ -241,6 +243,8 @@ void copy_params_to_global(const MotorManageRuntimeParams &params)
     g_motor_manage_runtime_params.pitch_max_acc_dps2 = params.pitch_max_acc_dps2;
     g_motor_manage_runtime_params.pitch_k_vel_ff = params.pitch_k_vel_ff;
     g_motor_manage_runtime_params.pitch_hold_ff = params.pitch_hold_ff;
+    g_motor_manage_runtime_params.pitch_gravity_sin = params.pitch_gravity_sin;
+    g_motor_manage_runtime_params.pitch_gravity_cos = params.pitch_gravity_cos;
 }
 
 float *find_param(MotorManageRuntimeParams *params, const char *name)
@@ -276,6 +280,8 @@ float *find_param(MotorManageRuntimeParams *params, const char *name)
     if (strcmp(name, "pitch_max_acc_dps2") == 0) { return &params->pitch_max_acc_dps2; }
     if (strcmp(name, "pitch_k_vel_ff") == 0) { return &params->pitch_k_vel_ff; }
     if (strcmp(name, "pitch_hold_ff") == 0) { return &params->pitch_hold_ff; }
+    if (strcmp(name, "pitch_gravity_sin") == 0) { return &params->pitch_gravity_sin; }
+    if (strcmp(name, "pitch_gravity_cos") == 0) { return &params->pitch_gravity_cos; }
 
     return nullptr;
 }
@@ -666,6 +672,8 @@ void debug_tune_print_params(void)
     print_param_line("pitch_max_acc_dps2", params.pitch_max_acc_dps2);
     print_param_line("pitch_k_vel_ff", params.pitch_k_vel_ff);
     print_param_line("pitch_hold_ff", params.pitch_hold_ff);
+    print_param_line("pitch_gravity_sin", params.pitch_gravity_sin);
+    print_param_line("pitch_gravity_cos", params.pitch_gravity_cos);
     SEGGER_RTT_printf(k_rtt_buffer_index,
                       "#STATE enabled=%u mode=%s axis=%s sample=%u rate_ms=%lu\n",
                       s_tune.enabled ? 1U : 0U,

@@ -40,9 +40,6 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/User/Module/MotorManage.h" beforeDir="false" afterPath="$PROJECT_DIR$/User/Module/MotorManage.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/User/Task/debug_tune.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/User/Task/debug_tune.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/tune_rtt.py" beforeDir="false" afterPath="$PROJECT_DIR$/tools/tune_rtt.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/云台手册.md" beforeDir="false" afterPath="$PROJECT_DIR$/云台手册.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -53,7 +50,7 @@
     <option name="formatViaClangd" value="false" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="5184" />
+    <option name="cachedIndexableFilesCount" value="5487" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug - Debug" />
@@ -119,11 +116,6 @@
     </key>
   </component>
   <component name="RunManager" selected="CMake 应用程序.Gimbal_um">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="FreeRTOS" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Gimbal_um" TARGET_NAME="FreeRTOS" CONFIG_NAME="Debug - Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -216,6 +208,9 @@
       <workItem from="1777168195895" duration="1580000" />
       <workItem from="1777170151159" duration="1464000" />
       <workItem from="1777188196573" duration="4583000" />
+      <workItem from="1777963307641" duration="660000" />
+      <workItem from="1777965646729" duration="1070000" />
+      <workItem from="1777969023164" duration="6000" />
     </task>
     <task id="LOCAL-00001" summary="搭建起来一个自己的框架">
       <option name="closed" value="true" />

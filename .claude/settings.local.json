@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python tools/send_ctrl_cmd.py step --dry-run --yaw -30 --pitch -5 --hold-s 0.01)",
+      "Bash(python tools/send_ctrl_cmd.py enable --dry-run)",
+      "Bash(python tools/send_ctrl_cmd.py step --dry-run --yaw 10 --pitch 5 --hold-s 0.01)",
+      "Bash(python tools/send_ctrl_cmd.py interactive --help)",
+      "Bash(timeout 3 python tools/send_ctrl_cmd.py)"
+    ]
+  }
+}

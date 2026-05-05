@@ -106,6 +106,14 @@ float compute_yaw_cable_ff(const MotorManageRuntimeParams &params,
     return clamp_abs_limit(cable_ff, params.yaw_cable_ff_limit);
 }
 
+float compute_pitch_gravity_ff(const MotorManageRuntimeParams &params, float pitch_deg)
+{
+    const float pitch_rad = pitch_deg * 0.017453292519943295f;
+    return params.pitch_hold_ff +
+           params.pitch_gravity_sin * std::sin(pitch_rad) +
+           params.pitch_gravity_cos * std::cos(pitch_rad);
+}
+
 int16_t clamp_current_cmd(float value, int16_t limit)
 {
     if (value > (float)limit)
@@ -212,10 +220,10 @@ volatile MotorManageRuntimeParams g_motor_manage_runtime_params = {
     38.0f, 0.0f, 0.0f,
     30.0f, 5.0f, 0.0f,
     18.0f, 4.0f, 0.0f,
-    15.0f, 3.0f, 0.0f,
+    20.0f, 3.0f, 0.0f,
     180.0f, 720.0f, 35.0f, 0.0f,
     0.0f, 0.0f, 0.0f, 0.0f, 10.0f, 0.0f,
-    120.0f, 480.0f, 0.08f, 0.0f
+    120.0f, 480.0f, 25.0f, 0.0f, 0.0f, -400.0f
 };
 
 MotorManage::MotorManage()
@@ -230,16 +238,17 @@ MotorManage::MotorManage()
       pitch_speed_target_cache_(0.0f),
       yaw_planner_state_{0.0f, 0.0f, 0.0f, false},
       pitch_planner_state_{0.0f, 0.0f, 0.0f, false},
-      yaw_ff_state_{0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
-      pitch_ff_state_{0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+      yaw_ff_state_{0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+      pitch_ff_state_{0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
       yaw_planner_config_{180.0f, 720.0f, 20.0f},
       pitch_planner_config_{120.0f, 480.0f, 0.08f},
-      runtime_params_{18.0f, 0.0f, 0.0f,
-                      25.0f, 5.0f, 0.0f,
+      runtime_params_{38.0f, 0.0f, 0.0f,
+                      30.0f, 5.0f, 0.0f,
                       18.0f, 4.0f, 0.0f,
-                      15.0f, 3.0f, 0.0f,
-                      180.0f, 720.0f, 20.0f, 0.0f,
-                      120.0f, 480.0f, 0.08f, 0.0f}
+                      20.0f, 3.0f, 0.0f,
+                      180.0f, 720.0f, 35.0f, 0.0f,
+                      0.0f, 0.0f, 0.0f, 0.0f, 10.0f, 0.0f,
+                      120.0f, 480.0f, 25.0f, 0.0f, 0.0f, -400.0f}
 {
     yaw_.init();
     pitch_.init();
@@ -303,6 +312,8 @@ void MotorManage::copy_runtime_params(MotorManageRuntimeParams *dst, const Motor
     dst->pitch_max_acc_dps2 = src.pitch_max_acc_dps2;
     dst->pitch_k_vel_ff = src.pitch_k_vel_ff;
     dst->pitch_hold_ff = src.pitch_hold_ff;
+    dst->pitch_gravity_sin = src.pitch_gravity_sin;
+    dst->pitch_gravity_cos = src.pitch_gravity_cos;
 }
 
 void MotorManage::copy_runtime_params(MotorManageRuntimeParams *dst, const volatile MotorManageRuntimeParams &src)
@@ -338,6 +349,8 @@ void MotorManage::copy_runtime_params(MotorManageRuntimeParams *dst, const volat
     dst->pitch_max_acc_dps2 = src.pitch_max_acc_dps2;
     dst->pitch_k_vel_ff = src.pitch_k_vel_ff;
     dst->pitch_hold_ff = src.pitch_hold_ff;
+    dst->pitch_gravity_sin = src.pitch_gravity_sin;
+    dst->pitch_gravity_cos = src.pitch_gravity_cos;
 }
 
 void MotorManage::copy_runtime_params(volatile MotorManageRuntimeParams *dst, const MotorManageRuntimeParams &src)
@@ -478,6 +491,7 @@ void MotorManage::clear_feedforward_state(FeedforwardAxisState *ff_state)
 
     ff_state->hold_ff = 0.0f;
     ff_state->cable_ff = 0.0f;
+    ff_state->gravity_ff = 0.0f;
     ff_state->boot_bias_ff = 0.0f;
     ff_state->vel_ff = 0.0f;
     ff_state->acc_ff = 0.0f;
@@ -776,9 +790,11 @@ void MotorManage::set_control_reference(const MotorControlReference &reference,
         const float pitch_current_pid = pitch_pid_speed_.calculate(pitch_speed_target, pitch_state.speed_dps, inner_dt_s);
         clear_feedforward_state(&pitch_ff_state_);
         pitch_ff_state_.hold_ff = runtime_params_.pitch_hold_ff;
+        pitch_ff_state_.gravity_ff = compute_pitch_gravity_ff(runtime_params_, pitch_meas_world_deg);
         pitch_ff_state_.vel_ff = runtime_params_.pitch_k_vel_ff * (-pitch_exec_vel);
         pitch_ff_state_.ff_total = pitch_ff_state_.hold_ff +
                                    pitch_ff_state_.cable_ff +
+                                   pitch_ff_state_.gravity_ff +
                                    pitch_ff_state_.boot_bias_ff +
                                    pitch_ff_state_.vel_ff +
                                    pitch_ff_state_.acc_ff;
@@ -807,6 +823,8 @@ void MotorManage::set_control_reference(const MotorControlReference &reference,
     g_motor_manage_debug.pitch.hold_ff = pitch_ff_state_.hold_ff;
     g_motor_manage_debug.yaw.cable_ff = yaw_ff_state_.cable_ff;
     g_motor_manage_debug.pitch.cable_ff = pitch_ff_state_.cable_ff;
+    g_motor_manage_debug.yaw.gravity_ff = yaw_ff_state_.gravity_ff;
+    g_motor_manage_debug.pitch.gravity_ff = pitch_ff_state_.gravity_ff;
     g_motor_manage_debug.yaw.boot_bias_ff = yaw_ff_state_.boot_bias_ff;
     g_motor_manage_debug.pitch.boot_bias_ff = pitch_ff_state_.boot_bias_ff;
     g_motor_manage_debug.yaw.vel_ff = yaw_ff_state_.vel_ff;
@@ -841,6 +859,8 @@ void MotorManage::set_control_reference(const MotorControlReference &reference,
     g_motor_manage_debug.pitch_hold_ff = pitch_ff_state_.hold_ff;
     g_motor_manage_debug.yaw_cable_ff = yaw_ff_state_.cable_ff;
     g_motor_manage_debug.pitch_cable_ff = pitch_ff_state_.cable_ff;
+    g_motor_manage_debug.yaw_gravity_ff = yaw_ff_state_.gravity_ff;
+    g_motor_manage_debug.pitch_gravity_ff = pitch_ff_state_.gravity_ff;
     g_motor_manage_debug.yaw_boot_bias_ff = yaw_ff_state_.boot_bias_ff;
     g_motor_manage_debug.pitch_boot_bias_ff = pitch_ff_state_.boot_bias_ff;
     g_motor_manage_debug.yaw_vel_ff = yaw_ff_state_.vel_ff;
